@@ -67,12 +67,15 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-black/5 bg-sand/95 backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between sm:h-20">
-        <Link to="/" className="flex items-center gap-2 text-lg font-bold sm:text-xl">
-          <span className="rounded-xl bg-forest p-2 text-white">
-            <Building2 size={20} />
-          </span>
-          PropertyFlow
-        </Link>
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          {languageButton}
+          <Link to="/" className="flex min-w-0 items-center gap-2 text-lg font-bold sm:text-xl">
+            <span className="rounded-xl bg-forest p-2 text-white">
+              <Building2 size={20} />
+            </span>
+            <span className="hidden sm:inline">PropertyFlow</span>
+          </Link>
+        </div>
         <nav className="hidden items-center gap-5 lg:flex">
           {links.map(([to, label]) => (
             <NavLink
@@ -87,7 +90,6 @@ export default function Header() {
               {label}
             </NavLink>
           ))}
-          {languageButton}
           {account}
         </nav>
         <button
@@ -111,7 +113,6 @@ export default function Header() {
               {label}
             </Link>
           ))}
-          {languageButton}
           <div className="flex flex-col gap-3 border-t border-black/5 pt-3">
             {account}
           </div>
