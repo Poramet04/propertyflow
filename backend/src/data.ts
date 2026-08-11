@@ -1,5 +1,9 @@
-const image =
-  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=80";
+const galleryImages = [
+  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=85",
+  "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1600&q=85",
+  "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1600&q=85",
+  "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1600&q=85",
+];
 const rows = [
   [
     "1",
@@ -154,5 +158,7 @@ export const properties = rows.map((r, i) => ({
     "Green space",
     "Covered parking",
   ],
-  images: [image],
+  images: galleryImages.map(
+    (_, imageIndex) => galleryImages[(imageIndex + i) % galleryImages.length]!,
+  ),
 }));

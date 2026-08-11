@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+
 interface Props {
   label: string;
   value: number;
@@ -7,6 +9,7 @@ interface Props {
   step?: number;
   suffix?: string;
 }
+
 export default function NumberField({
   label,
   value,
@@ -16,22 +19,55 @@ export default function NumberField({
   step = 1,
   suffix,
 }: Props) {
+  const [draft, setDraft] = useState(String(value));
+  const editing = useRef(false);
+
+  useEffect(() => {
+    if (!editing.current) setDraft(String(value));
+  }, [value]);
+
+  const update = (raw: string) => {
+    const cleaned = raw
+      .replace(/[^\d.]/g, "")
+      .replace(/(\..*)\./g, "$1")
+      .replace(/^0+(?=\d)/, "");
+    setDraft(cleaned);
+    if (cleaned !== "" && cleaned !== ".") {
+      const parsed = Number(cleaned);
+      if (Number.isFinite(parsed)) onChange(parsed);
+    }
+  };
+
+  const finishEditing = () => {
+    editing.current = false;
+    const parsed = Number(draft);
+    const next = Number.isFinite(parsed)
+      ? Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min, parsed))
+      : min;
+    setDraft(String(next));
+    onChange(next);
+  };
+
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <span className="mb-2 block text-sm font-semibold">{label}</span>
       <div className="relative">
-      <input
-        aria-label={label}
-        type="number"
-          value={value}
-          min={min}
-          max={max}
-          step={step}
-        onChange={(e) => onChange(Number(e.target.value))}
-        required
+        <input
+          aria-label={label}
+          type="text"
+          inputMode={step % 1 === 0 ? "numeric" : "decimal"}
+          value={draft}
+          onFocus={(event) => {
+            editing.current = true;
+            event.currentTarget.select();
+          }}
+          onChange={(event) => update(event.target.value)}
+          onBlur={finishEditing}
+          className={suffix ? "pr-20 tabular-nums" : "tabular-nums"}
+          required
         />
         {suffix && (
-          <span className="absolute right-4 top-3 text-sm text-black/40">
+          <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-black/40">
             {suffix}
           </span>
         )}

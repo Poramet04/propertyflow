@@ -121,6 +121,10 @@ async function main() {
         propertyType: p.propertyType as PropertyType,
         featured: p.featured,
         amenities: p.amenities,
+        images: {
+          deleteMany: {},
+          create: p.images.map((imageUrl, order) => ({ imageUrl, order })),
+        },
       },
       create: {
         title: p.title,
