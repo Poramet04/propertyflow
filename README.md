@@ -148,6 +148,14 @@ Tests focus on financial formulas, matching, commission, JWT verification, role 
 
 ## Deployment readiness
 
+### Live portfolio demo
+
+- Frontend: [propertyflowcondo.vercel.app](https://propertyflowcondo.vercel.app)
+- API health: [propertyflow-api-poramet04.onrender.com/api/health](https://propertyflow-api-poramet04.onrender.com/api/health)
+- Source: [github.com/Poramet04/propertyflow](https://github.com/Poramet04/propertyflow)
+
+The public demo uses fictional seed data. The Render free service may need a short cold start after a period of inactivity.
+
 ### Backend — Render or Railway
 
 1. Create a Node web service from the repository.
@@ -166,7 +174,7 @@ Tests focus on financial formulas, matching, commission, JWT verification, role 
 5. Add the final Vercel origin to backend `FRONTEND_URL` and redeploy the backend.
 6. Test login and the customer → agent → closed-deal workflow.
 
-No production deployment is claimed by this repository.
+The deployed portfolio demo uses Vercel for the frontend, Render for the API and the existing Supabase PostgreSQL database.
 
 ## Portfolio material
 
