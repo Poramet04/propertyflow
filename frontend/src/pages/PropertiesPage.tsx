@@ -1,0 +1,132 @@
+import { SlidersHorizontal } from "lucide-react";
+import { useMemo, useState } from "react";
+import PropertyCard from "../components/PropertyCard";
+import { useProperties } from "../hooks/useProperties";
+
+export default function PropertiesPage() {
+  const { properties, status } = useProperties();
+  const [location, setLocation] = useState(""),
+    [min, setMin] = useState(0),
+    [max, setMax] = useState(10000000),
+    [beds, setBeds] = useState(0),
+    [baths, setBaths] = useState(0),
+    [type, setType] = useState("");
+  const shown = useMemo(
+    () =>
+      properties.filter(
+        (p) =>
+          (!location || p.location === location) &&
+          p.price >= min &&
+          p.price <= max &&
+          p.bedrooms >= beds &&
+          p.bathrooms >= baths &&
+          (!type || p.propertyType === type),
+      ),
+    [properties, location, min, max, beds, baths, type],
+  );
+  return (
+    <section className="container-page py-14">
+      <p className="eyebrow">Browse Chonburi</p>
+      <h1 className="section-title mt-3">Find your kind of home</h1>
+      <div className="panel mt-9">
+        <div className="mb-5 flex items-center gap-2 font-bold">
+          <SlidersHorizontal size={19} /> Filter properties
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+          <select
+            aria-label="Location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+          >
+            <option value="">All locations</option>
+            {["Sriracha", "Laem Chabang", "Bangsaen", "Pattaya"].map((x) => (
+              <option key={x}>{x}</option>
+            ))}
+          </select>
+          <input
+            aria-label="Minimum price"
+            type="number"
+            min="0"
+            placeholder="Min price"
+            onChange={(e) => setMin(Number(e.target.value) || 0)}
+          />
+          <input
+            aria-label="Maximum price"
+            type="number"
+            min="0"
+            placeholder="Max price"
+            onChange={(e) => setMax(Number(e.target.value) || 1e9)}
+          />
+          <select
+            aria-label="Bedrooms"
+            value={beds}
+            onChange={(e) => setBeds(Number(e.target.value))}
+          >
+            <option value="0">Any beds</option>
+            <option value="1">1+ beds</option>
+            <option value="2">2+ beds</option>
+            <option value="3">3+ beds</option>
+          </select>
+          <select
+            aria-label="Bathrooms"
+            value={baths}
+            onChange={(e) => setBaths(Number(e.target.value))}
+          >
+            <option value="0">Any baths</option>
+            <option value="1">1+ baths</option>
+            <option value="2">2+ baths</option>
+            <option value="3">3+ baths</option>
+          </select>
+          <select
+            aria-label="Property type"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+          >
+            <option value="">All types</option>
+            {["CONDO", "HOUSE", "TOWNHOME", "VILLA"].map((x) => (
+              <option key={x}>{x}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      {status === "fallback" && (
+        <p className="mt-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
+          The live property service is unavailable. Showing bundled demo
+          listings.
+        </p>
+      )}
+      {status === "loading" ? (
+        <div
+          className="mt-8 grid gap-6 md:grid-cols-3"
+          aria-label="Loading properties"
+        >
+          {[1, 2, 3].map((x) => (
+            <div
+              key={x}
+              className="h-96 animate-pulse rounded-3xl bg-black/5"
+            />
+          ))}
+        </div>
+      ) : (
+        <>
+          <p className="mt-8 text-sm text-black/50">
+            {shown.length} fictional properties found
+          </p>
+          <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {shown.map((p) => (
+              <PropertyCard key={p.id} property={p} />
+            ))}
+          </div>
+          {!shown.length && (
+            <div className="panel mt-6 text-center">
+              <h2 className="text-xl font-bold">No exact matches</h2>
+              <p className="mt-2 text-black/50">
+                Try widening your budget or changing a filter.
+              </p>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}

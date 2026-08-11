@@ -1,0 +1,55 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {
+  * {
+    @apply box-border;
+  }
+  html {
+    @apply overflow-x-hidden;
+  }
+  body {
+    @apply m-0 min-w-0 overflow-x-hidden bg-sand text-ink antialiased;
+    font-family: "DM Sans", sans-serif;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: "Manrope", sans-serif;
+  }
+  input,
+  select,
+  textarea {
+    @apply w-full rounded-xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-forest focus:ring-2 focus:ring-forest/10 disabled:cursor-not-allowed disabled:bg-black/[.03];
+  }
+  button {
+    @apply transition;
+  }
+}
+@layer components {
+  .container-page {
+    @apply mx-auto max-w-7xl px-4 sm:px-5 md:px-8;
+  }
+  .btn-primary {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-forest px-5 py-3 font-semibold text-white hover:-translate-y-0.5 hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-light {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-5 py-3 font-semibold hover:bg-mint disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .section-title {
+    @apply text-3xl font-bold tracking-tight md:text-5xl;
+  }
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[.18em] text-forest sm:text-sm sm:tracking-[.2em];
+  }
+  .panel {
+    @apply rounded-2xl bg-white p-5 shadow-soft sm:rounded-3xl sm:p-6;
+  }
+  .table-shell {
+    @apply overflow-x-auto rounded-2xl bg-white shadow-soft sm:rounded-3xl;
+  }
+  .form-label {
+    @apply mb-2 block text-sm font-semibold;
+  }
+}

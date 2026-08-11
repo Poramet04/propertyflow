@@ -1,0 +1,16 @@
+CREATE TYPE "LeadPriority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'HOT');
+CREATE TYPE "LeadActivityType" AS ENUM ('LEAD_CREATED', 'AGENT_ASSIGNED', 'STATUS_CHANGED', 'NOTE_ADDED', 'APPOINTMENT_CREATED', 'APPOINTMENT_UPDATED', 'FOLLOW_UP_SET', 'FOLLOW_UP_COMPLETED', 'PRIORITY_CHANGED', 'DEAL_CREATED', 'PROPERTY_STATUS_CHANGED', 'LOAN_APPLICATION_CREATED', 'LOAN_STATUS_CHANGED');
+CREATE TYPE "LoanApplicationStatus" AS ENUM ('NOT_STARTED', 'DOCUMENT_PREPARATION', 'SUBMITTED_TO_BANK', 'UNDER_REVIEW', 'ADDITIONAL_DOCUMENT_REQUIRED', 'PRE_APPROVED', 'APPROVED', 'DECLINED', 'CANCELLED');
+ALTER TABLE "Lead" ADD COLUMN "followUpCompletedAt" TIMESTAMP(3), ADD COLUMN "nextFollowUpAt" TIMESTAMP(3), ADD COLUMN "priority" "LeadPriority" NOT NULL DEFAULT 'MEDIUM';
+ALTER TABLE "LoanProfile" ADD COLUMN "carLoanMonthlyPayment" DECIMAL(14,2) NOT NULL DEFAULT 0, ADD COLUMN "creditCardMonthlyPayment" DECIMAL(14,2) NOT NULL DEFAULT 0, ADD COLUMN "otherMonthlyDebt" DECIMAL(14,2) NOT NULL DEFAULT 0, ADD COLUMN "personalLoanMonthlyPayment" DECIMAL(14,2) NOT NULL DEFAULT 0;
+CREATE TABLE "LeadActivity" ("id" TEXT NOT NULL, "leadId" TEXT NOT NULL, "actorUserId" TEXT, "type" "LeadActivityType" NOT NULL, "description" TEXT NOT NULL, "metadata" JSONB, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "LeadActivity_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "LoanApplication" ("id" TEXT NOT NULL, "leadId" TEXT NOT NULL, "bankName" TEXT NOT NULL, "requestedLoanAmount" DECIMAL(14,2) NOT NULL, "status" "LoanApplicationStatus" NOT NULL DEFAULT 'NOT_STARTED', "submittedAt" TIMESTAMP(3), "note" TEXT NOT NULL DEFAULT '', "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "LoanApplication_pkey" PRIMARY KEY ("id"));
+CREATE INDEX "LeadActivity_leadId_createdAt_idx" ON "LeadActivity"("leadId", "createdAt");
+CREATE INDEX "LeadActivity_actorUserId_createdAt_idx" ON "LeadActivity"("actorUserId", "createdAt");
+CREATE INDEX "LoanApplication_leadId_status_idx" ON "LoanApplication"("leadId", "status");
+CREATE INDEX "LoanApplication_updatedAt_idx" ON "LoanApplication"("updatedAt");
+CREATE INDEX "Lead_assignedAgentId_priority_idx" ON "Lead"("assignedAgentId", "priority");
+CREATE INDEX "Lead_nextFollowUpAt_idx" ON "Lead"("nextFollowUpAt");
+ALTER TABLE "LeadActivity" ADD CONSTRAINT "LeadActivity_leadId_fkey" FOREIGN KEY ("leadId") REFERENCES "Lead"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "LeadActivity" ADD CONSTRAINT "LeadActivity_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "LoanApplication" ADD CONSTRAINT "LoanApplication_leadId_fkey" FOREIGN KEY ("leadId") REFERENCES "Lead"("id") ON DELETE CASCADE ON UPDATE CASCADE;

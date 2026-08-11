@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  AGENT
+  ADMIN
+}
+
+enum PropertyType {
+  CONDO
+  HOUSE
+  TOWNHOME
+  VILLA
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  INACTIVE
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  VIEWING
+  NEGOTIATION
+  BOOKING
+  CLOSED
+  LOST
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum LeadPriority {
+  LOW
+  MEDIUM
+  HIGH
+  HOT
+}
+
+enum LeadActivityType {
+  LEAD_CREATED
+  AGENT_ASSIGNED
+  STATUS_CHANGED
+  NOTE_ADDED
+  APPOINTMENT_CREATED
+  APPOINTMENT_UPDATED
+  FOLLOW_UP_SET
+  FOLLOW_UP_COMPLETED
+  PRIORITY_CHANGED
+  DEAL_CREATED
+  PROPERTY_STATUS_CHANGED
+  LOAN_APPLICATION_CREATED
+  LOAN_STATUS_CHANGED
+}
+
+enum LoanApplicationStatus {
+  NOT_STARTED
+  DOCUMENT_PREPARATION
+  SUBMITTED_TO_BANK
+  UNDER_REVIEW
+  ADDITIONAL_DOCUMENT_REQUIRED
+  PRE_APPROVED
+  APPROVED
+  DECLINED
+  CANCELLED
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  name               String
+  email              String              @unique
+  passwordHash       String
+  phone              String?
+  role               Role                @default(CUSTOMER)
+  loanProfile        LoanProfile?
+  propertyPreference PropertyPreference?
+  favorites          Favorite[]
+  customerLeads      Lead[]              @relation("LeadCustomer")
+  assignedLeads      Lead[]              @relation("LeadAgent")
+  dealsAsCustomer    Deal[]              @relation("DealCustomer")
+  dealsAsAgent       Deal[]              @relation("DealAgent")
+  leadActivities     LeadActivity[]      @relation("ActivityActor")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model Property {
+  id           String          @id @default(cuid())
+  title        String
+  slug         String          @unique
+  description  String
+  location     String
+  province     String          @default("Chonburi")
+  latitude     Float?
+  longitude    Float?
+  price        Decimal         @db.Decimal(14, 2)
+  bedrooms     Int
+  bathrooms    Int
+  areaSqm      Float
+  propertyType PropertyType
+  status       PropertyStatus  @default(AVAILABLE)
+  featured     Boolean         @default(false)
+  amenities    String[]
+  images       PropertyImage[]
+  favorites    Favorite[]
+  leads        Lead[]
+  deals        Deal[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model Lead {
+  id                  String            @id @default(cuid())
+  customerId          String
+  propertyId          String
+  assignedAgentId     String
+  budget              Decimal?          @db.Decimal(14, 2)
+  phone               String?
+  email               String
+  status              LeadStatus        @default(NEW)
+  priority            LeadPriority      @default(MEDIUM)
+  nextFollowUpAt      DateTime?
+  followUpCompletedAt DateTime?
+  notes               String            @default("")
+  customer            User              @relation("LeadCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  property            Property          @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  assignedAgent       User              @relation("LeadAgent", fields: [assignedAgentId], references: [id], onDelete: Restrict)
+  appointments        Appointment[]
+  deal                Deal?
+  activities          LeadActivity[]
+  loanApplications    LoanApplication[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([customerId, propertyId, status])
+  @@index([assignedAgentId, status])
+  @@index([assignedAgentId, priority])
+  @@index([nextFollowUpAt])
+  @@index([createdAt])
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  leadId          String
+  appointmentDate DateTime
+  status          AppointmentStatus @default(SCHEDULED)
+  note            String            @default("")
+  lead            Lead              @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([leadId, appointmentDate])
+  @@index([appointmentDate, status])
+}
+
+model Deal {
+  id               String   @id @default(cuid())
+  leadId           String   @unique
+  propertyId       String
+  customerId       String
+  agentId          String
+  salePrice        Decimal  @db.Decimal(14, 2)
+  commissionRate   Decimal  @db.Decimal(7, 6)
+  commissionAmount Decimal  @db.Decimal(14, 2)
+  closedAt         DateTime @default(now())
+  lead             Lead     @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  property         Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  customer         User     @relation("DealCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  agent            User     @relation("DealAgent", fields: [agentId], references: [id], onDelete: Restrict)
+
+  @@index([agentId, closedAt])
+  @@index([closedAt])
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  imageUrl   String
+  order      Int      @default(0)
+}
+
+model LoanProfile {
+  id                         String   @id @default(cuid())
+  userId                     String   @unique
+  user                       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  monthlyIncome              Decimal  @db.Decimal(14, 2)
+  additionalMonthlyIncome    Decimal  @default(0) @db.Decimal(14, 2)
+  existingDebt               Decimal  @db.Decimal(14, 2)
+  creditCardMonthlyPayment   Decimal  @default(0) @db.Decimal(14, 2)
+  carLoanMonthlyPayment      Decimal  @default(0) @db.Decimal(14, 2)
+  personalLoanMonthlyPayment Decimal  @default(0) @db.Decimal(14, 2)
+  otherMonthlyDebt           Decimal  @default(0) @db.Decimal(14, 2)
+  downPayment                Decimal  @db.Decimal(14, 2)
+  interestRate               Float
+  loanYears                  Int
+  maxDti                     Float    @default(40)
+  safetyMin                  Float    @default(85)
+  safetyMax                  Float    @default(92)
+  estimatedLoanAmount        Decimal  @db.Decimal(14, 2)
+  estimatedPropertyBudget    Decimal  @db.Decimal(14, 2)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+}
+
+model LeadActivity {
+  id          String           @id @default(cuid())
+  leadId      String
+  actorUserId String?
+  type        LeadActivityType
+  description String
+  metadata    Json?
+  lead        Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  actor       User?            @relation("ActivityActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  createdAt   DateTime         @default(now())
+
+  @@index([leadId, createdAt])
+  @@index([actorUserId, createdAt])
+}
+
+model LoanApplication {
+  id                  String                @id @default(cuid())
+  leadId              String
+  bankName            String
+  requestedLoanAmount Decimal               @db.Decimal(14, 2)
+  status              LoanApplicationStatus @default(NOT_STARTED)
+  submittedAt         DateTime?
+  note                String                @default("")
+  lead                Lead                  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([leadId, status])
+  @@index([updatedAt])
+}
+
+model PropertyPreference {
+  id                 String         @id @default(cuid())
+  userId             String         @unique
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredLocations String[]
+  propertyTypes      PropertyType[]
+  minBedrooms        Int            @default(0)
+  minBathrooms       Int            @default(0)
+  minArea            Float?
+  maxArea            Float?
+  maxMonthlyPayment  Decimal?       @db.Decimal(14, 2)
+  maxPropertyPrice   Decimal?       @db.Decimal(14, 2)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+model Favorite {
+  id         String   @id @default(cuid())
+  userId     String
+  propertyId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, propertyId])
+}
