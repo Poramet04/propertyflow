@@ -26,6 +26,9 @@ export default function AffordabilityPage() {
   const [result, setResult] = useState<AffordabilityResult | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const noMortgageCapacity =
+    result !== null &&
+    (result.maxMortgagePayment <= 0 || result.maxLoanAmount <= 0);
   const set = (key: keyof AffordabilityInput, value: number) =>
     setForm((current) => ({ ...current, [key]: value }));
   const calculate = async (save = false) => {
@@ -105,21 +108,52 @@ export default function AffordabilityPage() {
           <Wallet size={30} />
           {result ? (
             <>
+              {noMortgageCapacity && (
+                <div
+                  role="status"
+                  className="mt-7 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900"
+                >
+                  <p className="text-lg font-extrabold">
+                    {pick(
+                      "Buying is not recommended right now",
+                      "ยังไม่แนะนำให้ซื้อในตอนนี้",
+                    )}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-red-800/80">
+                    {pick(
+                      "Your current income and monthly debt leave no estimated capacity for a mortgage payment. Consider reducing debt, increasing stable income, or building a larger financial buffer before buying.",
+                      "จากรายได้และหนี้รายเดือนปัจจุบัน ระบบประเมินว่าคุณยังไม่มีความสามารถรองรับค่างวดสินเชื่อ แนะนำให้ลดหนี้ เพิ่มรายได้ที่มั่นคง หรือสร้างเงินสำรองให้มากขึ้นก่อนซื้อ",
+                    )}
+                  </p>
+                </div>
+              )}
               <p className="mt-7 text-sm text-white/60">{pick("Total monthly income", "รายได้รวมต่อเดือน")}</p>
               <p className="text-2xl font-bold">{money(result.totalMonthlyIncome)}</p>
               <p className="mt-6 text-sm text-white/60">{pick("Maximum mortgage payment", "ค่างวดสูงสุดโดยประมาณ")}</p>
               <p className="text-4xl font-bold">{money(result.maxMortgagePayment)}</p>
               <div className="mt-7 grid gap-5 sm:grid-cols-2">
                 <div><p className="text-sm text-white/60">{pick("Estimated loan amount", "วงเงินกู้โดยประมาณ")}</p><p className="mt-1 text-xl font-bold">{money(result.maxLoanAmount)}</p></div>
-                <div><p className="text-sm text-white/60">{pick("Maximum property budget", "งบซื้ออสังหาริมทรัพย์สูงสุด")}</p><p className="mt-1 text-xl font-bold">{money(result.maxPropertyPrice)}</p></div>
+                <div>
+                  <p className="text-sm text-white/60">{pick("Maximum property budget", "งบซื้ออสังหาริมทรัพย์สูงสุด")}</p>
+                  <p className="mt-1 text-xl font-bold">{money(result.maxPropertyPrice)}</p>
+                  {noMortgageCapacity && (
+                    <p className="mt-1 text-xs leading-5 text-white/55">
+                      {pick(
+                        "Based on available cash only; no mortgage capacity is included.",
+                        "เป็นวงเงินจากเงินสดที่มีเท่านั้น โดยยังไม่รวมความสามารถกู้",
+                      )}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="mt-7 rounded-2xl bg-white/10 p-4">
+              {!noMortgageCapacity && <><div className="mt-7 rounded-2xl bg-white/10 p-4">
                 <p className="text-sm text-white/60">{pick("Recommended safer budget", "งบประมาณที่ปลอดภัยกว่า")}</p>
                 <p className="mt-1 text-xl font-bold">{money(result.safeBudgetMin)} – {money(result.safeBudgetMax)}</p>
               </div>
               <Link className="mt-5 inline-block font-bold underline" to="/recommendations">
                 {pick("View smart recommendations →", "ดูรายการแนะนำ →")}
               </Link>
+              </>}
             </>
           ) : (
             <>

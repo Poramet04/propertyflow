@@ -57,9 +57,8 @@ export default function NumberField({
           type="text"
           inputMode={step % 1 === 0 ? "numeric" : "decimal"}
           value={draft}
-          onFocus={(event) => {
+          onFocus={() => {
             editing.current = true;
-            event.currentTarget.select();
           }}
           onChange={(event) => update(event.target.value)}
           onBlur={finishEditing}
