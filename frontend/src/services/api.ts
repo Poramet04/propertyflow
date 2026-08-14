@@ -99,6 +99,20 @@ export const propertyApi = {
       headers: auth(token),
     }),
 };
+export const favoriteApi = {
+  list: (token: string) =>
+    request<Property[]>("/favorites/me", { headers: auth(token) }),
+  add: (token: string, propertyId: string) =>
+    request<Property>(`/favorites/me/${propertyId}`, {
+      method: "POST",
+      headers: auth(token),
+    }),
+  remove: (token: string, propertyId: string) =>
+    request<void>(`/favorites/me/${propertyId}`, {
+      method: "DELETE",
+      headers: auth(token),
+    }),
+};
 export const authApi = {
   register: (body: unknown) =>
     request<AuthResult>("/auth/register", {

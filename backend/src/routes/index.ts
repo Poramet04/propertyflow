@@ -21,6 +21,11 @@ import { customerDashboard } from "../controllers/customer-dashboard.controller.
 import { dashboard } from "../controllers/dashboard.controller.js";
 import { createDeal } from "../controllers/deal.controller.js";
 import {
+  addMyFavorite,
+  listMyFavorites,
+  removeMyFavorite,
+} from "../controllers/favorite.controller.js";
+import {
   completeFollowUp,
   listActivities,
   setFollowUp,
@@ -72,6 +77,24 @@ api.get("/health", (_req, res) =>
 api.post("/auth/register", register);
 api.post("/auth/login", login);
 api.get("/auth/me", requireAuth, me);
+api.get(
+  "/favorites/me",
+  requireAuth,
+  allowRoles(Role.CUSTOMER),
+  listMyFavorites,
+);
+api.post(
+  "/favorites/me/:propertyId",
+  requireAuth,
+  allowRoles(Role.CUSTOMER),
+  addMyFavorite,
+);
+api.delete(
+  "/favorites/me/:propertyId",
+  requireAuth,
+  allowRoles(Role.CUSTOMER),
+  removeMyFavorite,
+);
 api.get("/properties", listProperties);
 api.get("/properties/manage", requireAuth, allowRoles(Role.AGENT, Role.ADMIN), listManagedProperties);
 api.get("/properties/:id", getProperty);

@@ -16,6 +16,7 @@ export default function Header() {
     ...(user?.role === "CUSTOMER"
       ? [
           ["/customer", pick("My dashboard", "แดชบอร์ดของฉัน")],
+          ["/favorites", pick("Favorites", "รายการโปรด")],
           ["/recommendations", pick("Recommendations", "รายการแนะนำ")],
           ["/my-leads", pick("My enquiries", "รายการที่สนใจ")],
         ]

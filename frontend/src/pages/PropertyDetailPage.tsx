@@ -4,6 +4,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Heart,
   MapPin,
   Ruler,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useLanguage } from "../hooks/useLanguage";
 import {
   calculatorApi,
+  favoriteApi,
   leadApi,
   propertyApi,
   recommendationApi,
@@ -48,6 +50,9 @@ export default function PropertyDetailPage() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [hasEnquiry, setHasEnquiry] = useState(false);
+  const [favorite, setFavorite] = useState(false);
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [favoriteMessage, setFavoriteMessage] = useState("");
 
   useEffect(() => {
     if (slug) propertyApi.get(slug).then(setProperty).catch((caught) => setError(caught.message));
@@ -71,6 +76,45 @@ export default function PropertyDetailPage() {
   }, [token, user?.role, property?.id]);
 
   useEffect(() => setImageIndex(0), [property?.id]);
+
+  useEffect(() => {
+    if (token && user?.role === "CUSTOMER" && property)
+      favoriteApi
+        .list(token)
+        .then((items) => setFavorite(items.some((item) => item.id === property.id)))
+        .catch(() => setFavorite(false));
+    else setFavorite(false);
+  }, [token, user?.role, property?.id]);
+
+  const toggleFavorite = async () => {
+    if (!user || !token) {
+      navigate("/login", { state: { from: location.pathname } });
+      return;
+    }
+    if (user.role !== "CUSTOMER" || !property) return;
+    const removing = favorite;
+    setFavoriteBusy(true);
+    setFavoriteMessage("");
+    setFavorite(!removing);
+    try {
+      if (removing) await favoriteApi.remove(token, property.id);
+      else await favoriteApi.add(token, property.id);
+      setFavoriteMessage(
+        removing
+          ? pick("Removed from favorites", "นำออกจากรายการโปรดแล้ว")
+          : pick("Added to favorites", "เพิ่มในรายการโปรดแล้ว"),
+      );
+    } catch (caught) {
+      setFavorite(removing);
+      setFavoriteMessage(
+        caught instanceof Error
+          ? caught.message
+          : pick("Could not update favorites", "ไม่สามารถอัปเดตรายการโปรดได้"),
+      );
+    } finally {
+      setFavoriteBusy(false);
+    }
+  };
 
   const interest = async () => {
     if (!user || !token) {
@@ -234,6 +278,24 @@ export default function PropertyDetailPage() {
                 ? pick("Enquiry sent", "ส่งความสนใจแล้ว")
                 : pick("I'm Interested", "ฉันสนใจ")}
           </button>
+          {(!user || user.role === "CUSTOMER") && (
+            <button
+              type="button"
+              disabled={favoriteBusy}
+              onClick={toggleFavorite}
+              className="btn-light mt-3 w-full justify-center disabled:opacity-50"
+            >
+              <Heart size={18} fill={favorite ? "currentColor" : "none"} />
+              {favorite
+                ? pick("Remove from favorites", "นำออกจากรายการโปรด")
+                : pick("Add to favorites", "เพิ่มในรายการโปรด")}
+            </button>
+          )}
+          {favoriteMessage && (
+            <p role="status" className="mt-3 rounded-xl bg-black/[.035] p-3 text-sm text-forest">
+              {favoriteMessage}
+            </p>
+          )}
           {message && <p role="status" className="mt-3 rounded-xl bg-mint p-3 text-sm text-forest">{message}</p>}
         </aside>
       </div>

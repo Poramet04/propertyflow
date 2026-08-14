@@ -1,16 +1,29 @@
-import { BedDouble, Bath, MoveUpRight, Ruler } from "lucide-react";
+import { BedDouble, Bath, Heart, MoveUpRight, Ruler } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useLanguage } from "../hooks/useLanguage";
 import type { Property } from "../types";
 import { money } from "../utils/finance";
 import SafeImage from "./SafeImage";
-export default function PropertyCard({ property: p }: { property: Property }) {
+interface PropertyCardProps {
+  property: Property;
+  favorite?: boolean;
+  favoriteBusy?: boolean;
+  onToggleFavorite?: (property: Property) => void;
+}
+export default function PropertyCard({
+  property: p,
+  favorite = false,
+  favoriteBusy = false,
+  onToggleFavorite,
+}: PropertyCardProps) {
+  const { pick } = useLanguage();
   return (
-    <Link
-      to={`/properties/${p.slug}`}
-      aria-label={`View ${p.title}`}
-      className="group block overflow-hidden rounded-3xl bg-white shadow-soft outline-none transition hover:-translate-y-1 hover:shadow-xl focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-4 focus-visible:ring-offset-sand"
-    >
-      <article>
+    <article className="group relative overflow-hidden rounded-3xl bg-white shadow-soft transition hover:-translate-y-1 hover:shadow-xl">
+      <Link
+        to={`/properties/${p.slug}`}
+        aria-label={`View ${p.title}`}
+        className="block outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-forest"
+      >
         <div className="relative h-56 overflow-hidden">
           <SafeImage
             src={p.images[0] || "/property-placeholder.svg"}
@@ -47,7 +60,30 @@ export default function PropertyCard({ property: p }: { property: Property }) {
             </span>
           </div>
         </div>
-      </article>
-    </Link>
+      </Link>
+      {onToggleFavorite && (
+        <button
+          type="button"
+          disabled={favoriteBusy}
+          onClick={() => onToggleFavorite(p)}
+          aria-label={
+            favorite
+              ? pick(`Remove ${p.title} from favorites`, `นำ ${p.title} ออกจากรายการโปรด`)
+              : pick(`Add ${p.title} to favorites`, `เพิ่ม ${p.title} ในรายการโปรด`)
+          }
+          title={pick(
+            favorite ? "Remove from favorites" : "Add to favorites",
+            favorite ? "นำออกจากรายการโปรด" : "เพิ่มในรายการโปรด",
+          )}
+          className={`absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border shadow-md transition disabled:opacity-50 ${
+            favorite
+              ? "border-forest bg-forest text-white"
+              : "border-white/70 bg-white/90 text-forest hover:bg-mint"
+          }`}
+        >
+          <Heart size={20} fill={favorite ? "currentColor" : "none"} />
+        </button>
+      )}
+    </article>
   );
 }

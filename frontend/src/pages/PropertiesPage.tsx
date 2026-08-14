@@ -1,18 +1,70 @@
 import { SlidersHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import PropertyCard from "../components/PropertyCard";
+import { useAuth } from "../hooks/useAuth";
 import { useLanguage } from "../hooks/useLanguage";
 import { useProperties } from "../hooks/useProperties";
+import { favoriteApi } from "../services/api";
+import type { Property } from "../types";
 
 export default function PropertiesPage() {
   const { properties, status } = useProperties();
+  const { token, user } = useAuth();
   const { pick } = useLanguage();
+  const navigate = useNavigate();
+  const routeLocation = useLocation();
   const [location, setLocation] = useState(""),
     [min, setMin] = useState(0),
     [max, setMax] = useState(10000000),
     [beds, setBeds] = useState(0),
     [baths, setBaths] = useState(0),
     [type, setType] = useState("");
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [favoriteBusy, setFavoriteBusy] = useState<string[]>([]);
+  const [favoriteError, setFavoriteError] = useState("");
+  useEffect(() => {
+    if (token && user?.role === "CUSTOMER")
+      favoriteApi
+        .list(token)
+        .then((items) => setFavoriteIds(new Set(items.map((item) => item.id))))
+        .catch((caught) => setFavoriteError(caught.message));
+    else setFavoriteIds(new Set());
+  }, [token, user?.role]);
+  const toggleFavorite = async (property: Property) => {
+    if (!token || !user) {
+      navigate("/login", { state: { from: routeLocation.pathname } });
+      return;
+    }
+    if (user.role !== "CUSTOMER") return;
+    const removing = favoriteIds.has(property.id);
+    setFavoriteError("");
+    setFavoriteBusy((current) => [...current, property.id]);
+    setFavoriteIds((current) => {
+      const next = new Set(current);
+      if (removing) next.delete(property.id);
+      else next.add(property.id);
+      return next;
+    });
+    try {
+      if (removing) await favoriteApi.remove(token, property.id);
+      else await favoriteApi.add(token, property.id);
+    } catch (caught) {
+      setFavoriteIds((current) => {
+        const next = new Set(current);
+        if (removing) next.add(property.id);
+        else next.delete(property.id);
+        return next;
+      });
+      setFavoriteError(
+        caught instanceof Error
+          ? caught.message
+          : pick("Could not update favorites", "ไม่สามารถอัปเดตรายการโปรดได้"),
+      );
+    } finally {
+      setFavoriteBusy((current) => current.filter((id) => id !== property.id));
+    }
+  };
   const shown = useMemo(
     () =>
       properties.filter(
@@ -102,13 +154,26 @@ export default function PropertiesPage() {
           {pick("Refreshing the latest property data...", "กำลังอัปเดตข้อมูลอสังหาริมทรัพย์ล่าสุด...")}
         </p>
       )}
+      {favoriteError && (
+        <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">
+          {favoriteError}
+        </p>
+      )}
       <>
           <p className="mt-8 text-sm text-black/50">
             {shown.length} fictional properties found
           </p>
           <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {shown.map((p) => (
-              <PropertyCard key={p.id} property={p} />
+              <PropertyCard
+                key={p.id}
+                property={p}
+                favorite={favoriteIds.has(p.id)}
+                favoriteBusy={favoriteBusy.includes(p.id)}
+                onToggleFavorite={
+                  !user || user.role === "CUSTOMER" ? toggleFavorite : undefined
+                }
+              />
             ))}
           </div>
           {!shown.length && (

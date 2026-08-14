@@ -8,6 +8,7 @@ import HomePage from "./pages/HomePage";
 import MyLeadsPage from "./pages/MyLeadsPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import CustomerDashboardPage from "./pages/CustomerDashboardPage";
+import FavoritesPage from "./pages/FavoritesPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import PropertiesPage from "./pages/PropertiesPage";
 import PropertyDetailPage from "./pages/PropertyDetailPage";
@@ -44,6 +45,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={["CUSTOMER"]}>
                 <RecommendationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="favorites"
+            element={
+              <ProtectedRoute roles={["CUSTOMER"]}>
+                <FavoritesPage />
               </ProtectedRoute>
             }
           />
