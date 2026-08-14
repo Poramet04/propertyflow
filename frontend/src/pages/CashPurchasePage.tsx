@@ -58,7 +58,7 @@ export default function CashPurchasePage() {
             <div><p className="text-sm text-white/65">{pick("Cash after reserves", "เงินหลังหักเงินสำรอง")}</p><p className="mt-1 text-xl font-bold">{money(result.usableCash)}</p></div>
             <div><p className="text-sm text-white/65">{pick("Estimated costs", "ค่าใช้จ่ายโดยประมาณ")}</p><p className="mt-1 text-xl font-bold">{money(result.estimatedFees)}</p></div>
           </div>
-          <Link to="/properties" className="btn-light mt-6 w-full justify-center">{pick("Browse within this budget", "ดูอสังหาริมทรัพย์ในงบนี้")}</Link>
+          <Link to="/properties" className="btn-light mt-6 w-full justify-center !text-forest">{pick("Browse within this budget", "ดูอสังหาริมทรัพย์ในงบนี้")}</Link>
         </div>
       </div>
 
