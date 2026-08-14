@@ -42,7 +42,11 @@ function DocumentTranslator({ isThai }: { isThai: boolean }) {
       let current = walker.nextNode() as Text | null;
       while (current) {
         const parent = current.parentElement;
-        if (parent && !["SCRIPT", "STYLE", "NOSCRIPT"].includes(parent.tagName)) {
+        if (
+          parent &&
+          !parent.closest("[data-no-translate]") &&
+          !["SCRIPT", "STYLE", "NOSCRIPT"].includes(parent.tagName)
+        ) {
           const value = current.nodeValue ?? "";
           let record = textRecords.current.get(current);
           if (isThai) {
@@ -65,6 +69,7 @@ function DocumentTranslator({ isThai }: { isThai: boolean }) {
       }
 
       document.body.querySelectorAll("*").forEach((element) => {
+        if (element.closest("[data-no-translate]")) return;
         const saved = attributeRecords.current.get(element) ?? {};
         for (const attribute of attributes) {
           const value = element.getAttribute(attribute);

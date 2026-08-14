@@ -31,6 +31,7 @@ export default function Header() {
   const languageButton = (
     <button
       type="button"
+      data-no-translate
       onClick={toggleLanguage}
       className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-black/10 bg-white px-3 font-semibold text-forest hover:bg-mint"
       aria-label={pick("Switch to Thai", "เปลี่ยนเป็นภาษาอังกฤษ")}
@@ -68,17 +69,17 @@ export default function Header() {
   );
   return (
     <header className="sticky top-0 z-50 border-b border-black/5 bg-sand/95 backdrop-blur">
-      <div className="container-page flex h-16 items-center justify-between sm:h-20">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+      <div className="container-page flex h-16 items-center justify-between gap-5 sm:h-20">
+        <div className="flex shrink-0 items-center gap-3">
           {languageButton}
-          <Link to="/" className="flex min-w-0 items-center gap-2 text-lg font-bold sm:text-xl">
+          <Link to="/" className="mr-2 flex min-w-0 items-center gap-2 border-r border-black/10 pr-5 text-lg font-bold sm:text-xl">
             <span className="rounded-xl bg-forest p-2 text-white">
               <Building2 size={20} />
             </span>
             <span className="hidden sm:inline">PropertyFlow</span>
           </Link>
         </div>
-        <nav className="hidden items-center gap-5 lg:flex">
+        <nav className="hidden flex-1 items-center justify-end gap-4 text-sm xl:flex">
           {links.map(([to, label]) => (
             <NavLink
               key={to}
@@ -95,7 +96,7 @@ export default function Header() {
           {account}
         </nav>
         <button
-          className="rounded-lg p-2 lg:hidden"
+          className="rounded-lg p-2 xl:hidden"
           aria-expanded={open}
           aria-label={pick("Toggle navigation", "เปิดหรือปิดเมนู")}
           onClick={() => setOpen(!open)}
@@ -104,7 +105,7 @@ export default function Header() {
         </button>
       </div>
       {open && (
-        <nav className="container-page flex max-h-[calc(100vh-4rem)] flex-col gap-3 overflow-y-auto border-t border-black/5 py-4 lg:hidden">
+        <nav className="container-page flex max-h-[calc(100vh-4rem)] flex-col gap-3 overflow-y-auto border-t border-black/5 py-4 xl:hidden">
           {links.map(([to, label]) => (
             <Link
               key={to}

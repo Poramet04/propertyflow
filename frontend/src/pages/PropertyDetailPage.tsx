@@ -47,6 +47,7 @@ export default function PropertyDetailPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [hasEnquiry, setHasEnquiry] = useState(false);
 
   useEffect(() => {
     if (slug) propertyApi.get(slug).then(setProperty).catch((caught) => setError(caught.message));
@@ -98,10 +99,20 @@ export default function PropertyDetailPage() {
           `ส่งความสนใจเรียบร้อยแล้ว ${lead.assignedAgent.name} จะเป็นผู้ดูแลคุณ`,
         ),
       );
+      setHasEnquiry(true);
     } catch (caught) {
+      const duplicateEnquiry =
+        caught instanceof Error &&
+        caught.message.includes("already have an active enquiry");
+      if (duplicateEnquiry) setHasEnquiry(true);
       setMessage(
-        caught instanceof Error
-          ? caught.message
+        duplicateEnquiry
+          ? pick(
+              "You already have an active enquiry for this property.",
+              "คุณมีรายการแสดงความสนใจที่กำลังดำเนินการสำหรับอสังหาริมทรัพย์นี้อยู่แล้ว",
+            )
+          : caught instanceof Error
+            ? caught.message
           : pick("Could not create enquiry", "ไม่สามารถส่งความสนใจได้"),
       );
     } finally {
@@ -213,11 +224,15 @@ export default function PropertyDetailPage() {
             {pick("Create a verified enquiry and an agent will be assigned automatically.", "ส่งความสนใจ แล้วระบบจะมอบหมายเจ้าหน้าที่ให้คุณโดยอัตโนมัติ")}
           </p>
           <button
-            disabled={busy || property.status === "SOLD" || property.status === "INACTIVE"}
+            disabled={busy || hasEnquiry || property.status === "SOLD" || property.status === "INACTIVE"}
             onClick={interest}
             className="btn-primary mt-6 w-full disabled:opacity-50"
           >
-            {busy ? pick("Creating enquiry...", "กำลังส่งข้อมูล...") : pick("I'm Interested", "ฉันสนใจ")}
+            {busy
+              ? pick("Creating enquiry...", "กำลังส่งข้อมูล...")
+              : hasEnquiry
+                ? pick("Enquiry sent", "ส่งความสนใจแล้ว")
+                : pick("I'm Interested", "ฉันสนใจ")}
           </button>
           {message && <p role="status" className="mt-3 rounded-xl bg-mint p-3 text-sm text-forest">{message}</p>}
         </aside>
