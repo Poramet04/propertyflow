@@ -17,8 +17,10 @@ import type {
 } from "../../types";
 import { money } from "../../utils/finance";
 import { ErrorState, LoadingState } from "../../components/UiState";
+import { useLanguage } from "../../hooks/useLanguage";
 export default function DashboardPage() {
   const { token, user } = useAuth(),
+    { pick } = useLanguage(),
     [data, setData] = useState<DashboardData | null>(null),
     [leads, setLeads] = useState<LeadAnalytics | null>(null),
     [sales, setSales] = useState<SalesAnalytics | null>(null),
@@ -72,6 +74,19 @@ export default function DashboardPage() {
       <h1 className="mt-2 text-4xl font-bold">
         {user?.role === "ADMIN" ? "Admin" : "Agent"} dashboard
       </h1>
+      <section className="mt-7 rounded-3xl border border-forest/15 bg-mint/70 p-6">
+        <h2 className="text-xl font-bold">
+          {pick("How to add follow-ups and activities", "วิธีเพิ่มการติดตามและกิจกรรม")}
+        </h2>
+        <ol className="mt-4 grid gap-3 text-sm leading-6 md:grid-cols-3">
+          <li><b>1.</b> {pick("Open Pipeline and select a customer lead.", "เปิดไปป์ไลน์แล้วเลือกลีดของลูกค้า")}</li>
+          <li><b>2.</b> {pick("Enter the follow-up date and time, then select Set follow-up.", "กรอกวันและเวลาในช่องติดตาม แล้วกดตั้งเวลาติดตาม")}</li>
+          <li><b>3.</b> {pick("Activities are recorded automatically when status, notes, appointments, follow-ups, loans or deals change.", "กิจกรรมจะบันทึกอัตโนมัติเมื่อเปลี่ยนสถานะ โน้ต นัดหมาย การติดตาม สินเชื่อ หรือดีล")}</li>
+        </ol>
+        <Link className="btn-light mt-5" to="/crm/pipeline">
+          {pick("Open Pipeline", "เปิดไปป์ไลน์")}
+        </Link>
+      </section>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map(([label, value, Icon]) => (
           <div className="panel flex items-center gap-4" key={label}>

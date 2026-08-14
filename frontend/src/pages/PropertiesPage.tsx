@@ -97,20 +97,12 @@ export default function PropertiesPage() {
           listings.
         </p>
       )}
-      {status === "loading" ? (
-        <div
-          className="mt-8 grid gap-6 md:grid-cols-3"
-          aria-label="Loading properties"
-        >
-          {[1, 2, 3].map((x) => (
-            <div
-              key={x}
-              className="h-96 animate-pulse rounded-3xl bg-black/5"
-            />
-          ))}
-        </div>
-      ) : (
-        <>
+      {status === "loading" && (
+        <p className="mt-5 text-sm text-black/45" role="status">
+          {pick("Refreshing the latest property data...", "กำลังอัปเดตข้อมูลอสังหาริมทรัพย์ล่าสุด...")}
+        </p>
+      )}
+      <>
           <p className="mt-8 text-sm text-black/50">
             {shown.length} fictional properties found
           </p>
@@ -127,8 +119,7 @@ export default function PropertiesPage() {
               </p>
             </div>
           )}
-        </>
-      )}
+      </>
     </section>
   );
 }

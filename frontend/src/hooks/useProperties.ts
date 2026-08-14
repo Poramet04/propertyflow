@@ -4,7 +4,7 @@ import { propertyApi } from "../services/api";
 import type { Property } from "../types";
 type Status = "loading" | "ready" | "fallback";
 export function useProperties() {
-  const [items, setItems] = useState<Property[]>([]),
+  const [items, setItems] = useState<Property[]>(fallback),
     [status, setStatus] = useState<Status>("loading");
   useEffect(() => {
     let active = true;

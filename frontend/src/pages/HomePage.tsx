@@ -1,4 +1,4 @@
-import { ArrowRight, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
+import { ArrowRight, WalletCards } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import NumberField from "../components/NumberField";
@@ -36,16 +36,6 @@ export default function HomePage() {
             <Link className="btn-light" to="/affordability">
               Plan my budget
             </Link>
-          </div>
-          <div className="mt-12 flex flex-wrap gap-6 text-sm text-black/50">
-            <span className="flex gap-2">
-              <ShieldCheck size={18} className="text-forest" />
-              Transparent estimates
-            </span>
-            <span className="flex gap-2">
-              <Sparkles size={18} className="text-forest" />
-              Curated Chonburi homes
-            </span>
           </div>
         </div>
         <form onSubmit={submit} className="panel relative overflow-hidden">

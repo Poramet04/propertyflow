@@ -1,4 +1,4 @@
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ImagePlus, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { propertyApi } from "../../services/api";
@@ -18,9 +18,7 @@ const blank = {
   status: "AVAILABLE",
   featured: false,
   amenities: ["24-hour security"],
-  images: [
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=80",
-  ],
+  images: [],
 };
 export default function PropertyManagementPage() {
   const { token, user } = useAuth(),
@@ -65,6 +63,23 @@ export default function PropertyManagementPage() {
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Could not delete");
     }
+  };
+  const changeImage = (index: number, value: string) => {
+    const images = [...(form.images || [])];
+    images[index] = value;
+    setForm({ ...form, images });
+  };
+  const removeImage = (index: number) =>
+    setForm({
+      ...form,
+      images: (form.images || []).filter((_: string, i: number) => i !== index),
+    });
+  const moveImage = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    const images = [...(form.images || [])];
+    if (target < 0 || target >= images.length) return;
+    [images[index], images[target]] = [images[target], images[index]];
+    setForm({ ...form, images });
   };
   return (
     <>
@@ -200,6 +215,55 @@ export default function PropertyManagementPage() {
               />
             </label>
           </div>
+          <section className="mt-6 rounded-2xl border border-black/10 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="font-bold">Property images</h3>
+                <p className="mt-1 text-sm text-black/50">
+                  Add HTTPS image URLs or PropertyFlow gallery paths. The first image is the cover.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn-light"
+                onClick={() =>
+                  setForm({ ...form, images: [...(form.images || []), ""] })
+                }
+              >
+                <ImagePlus size={18} /> Add image
+              </button>
+            </div>
+            <div className="mt-4 grid gap-3">
+              {(form.images || []).map((image: string, index: number) => (
+                <div className="grid gap-3 rounded-2xl bg-black/[.025] p-3 md:grid-cols-[80px_minmax(0,1fr)_auto] md:items-center" key={index}>
+                  <div className="h-16 overflow-hidden rounded-xl bg-black/5">
+                    {image ? <img src={image} alt="" className="h-full w-full object-cover" /> : null}
+                  </div>
+                  <label className="text-sm font-semibold">
+                    {index === 0 ? "Cover image URL" : `Image ${index + 1} URL`}
+                    <input
+                      className="mt-1"
+                      type="text"
+                      required
+                      placeholder="https://..."
+                      value={image}
+                      onChange={(e) => changeImage(index, e.target.value)}
+                    />
+                  </label>
+                  <div className="flex gap-1 md:pt-5">
+                    <button type="button" className="rounded-lg border p-2" disabled={index === 0} onClick={() => moveImage(index, -1)} aria-label="Move image up"><ArrowUp size={16} /></button>
+                    <button type="button" className="rounded-lg border p-2" disabled={index === form.images.length - 1} onClick={() => moveImage(index, 1)} aria-label="Move image down"><ArrowDown size={16} /></button>
+                    <button type="button" className="rounded-lg border p-2 text-red-600" onClick={() => removeImage(index)} aria-label="Remove image"><X size={16} /></button>
+                  </div>
+                </div>
+              ))}
+              {!form.images?.length && (
+                <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
+                  No images yet. The public site will use its fallback image until you add one.
+                </p>
+              )}
+            </div>
+          </section>
           <div className="mt-5 flex gap-3">
             <button className="btn-primary">Save property</button>
             <button

@@ -17,6 +17,8 @@ export default function SafeImage({
       src={current}
       alt={alt}
       className={className}
+      loading="lazy"
+      decoding="async"
       onError={() => {
         if (current !== FALLBACK) setCurrent(FALLBACK);
       }}

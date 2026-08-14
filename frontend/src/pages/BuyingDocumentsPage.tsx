@@ -135,8 +135,8 @@ export default function BuyingDocumentsPage() {
         </section>
       </div>
 
-      <aside className="mt-8 rounded-3xl bg-forest p-6 text-white sm:p-8">
-        <div className="flex items-start gap-3"><FileCheck2 className="mt-1 shrink-0" /><div><h2 className="text-xl font-bold">{pick("Check the final list before you act", "ตรวจรายการล่าสุดก่อนดำเนินการจริง")}</h2><p className="mt-2 text-sm leading-6 text-white/75">{pick("Requirements vary by bank, property type, marital status, nationality and Land Office. Ask for a case-specific checklist before signing or transferring funds.", "รายการเอกสารอาจต่างกันตามธนาคาร ประเภททรัพย์ สถานภาพสมรส สัญชาติ และสำนักงานที่ดิน ควรขอเช็กลิสต์เฉพาะกรณีก่อนเซ็นสัญญาหรือโอนเงิน")}</p></div></div>
+      <aside className="mt-8 rounded-3xl border border-forest/15 bg-mint p-6 text-ink sm:p-8">
+        <div className="flex items-start gap-3"><FileCheck2 className="mt-1 shrink-0 text-forest" /><div><h2 className="text-xl font-bold text-black">{pick("Check the final list before you act", "ตรวจรายการล่าสุดก่อนดำเนินการจริง")}</h2><p className="mt-2 text-sm leading-6 text-black/65">{pick("Requirements vary by bank, property type, marital status, nationality and Land Office. Ask for a case-specific checklist before signing or transferring funds.", "รายการเอกสารอาจต่างกันตามธนาคาร ประเภททรัพย์ สถานภาพสมรส สัญชาติ และสำนักงานที่ดิน ควรขอเช็กลิสต์เฉพาะกรณีก่อนเซ็นสัญญาหรือโอนเงิน")}</p></div></div>
         <div className="mt-5 flex flex-wrap gap-3">
           <a className="btn-light" href="https://www.dol.go.th/dol-services/citizen-services/" target="_blank" rel="noreferrer">{pick("Department of Lands", "กรมที่ดิน")}<ExternalLink size={16} /></a>
           <a className="btn-light" href="https://www.bot.or.th/th/our-roles/financial-markets/foreign-exchange-regulations/foreign-exchange-laws.html" target="_blank" rel="noreferrer">{pick("Bank of Thailand FX guidance", "ข้อมูลเงินตราต่างประเทศ ธปท.")}<ExternalLink size={16} /></a>
