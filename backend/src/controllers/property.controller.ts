@@ -17,6 +17,18 @@ const shape = (p: any) => {
     images: p.images?.map((x: any) => x.imageUrl) ?? [],
   };
 };
+const imageSource = z.string().refine(
+  (value) => {
+    if (/^\/properties\/[a-z0-9-]+\/[a-z0-9-]+\.jpg$/.test(value)) return true;
+    try {
+      new URL(value);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  "Image must be a valid URL or a PropertyFlow gallery path",
+);
 const input = z.object({
   title: z.string().min(3).max(160),
   slug: z.string().regex(/^[a-z0-9-]+$/),
@@ -31,7 +43,7 @@ const input = z.object({
   status: z.nativeEnum(PropertyStatus).optional(),
   featured: z.boolean().optional(),
   amenities: z.array(z.string()).default([]),
-  images: z.array(z.string().url()).default([]),
+  images: z.array(imageSource).default([]),
 });
 export const listProperties: RequestHandler = async (req, res) => {
   const where: any = { status: { in: [PropertyStatus.AVAILABLE, PropertyStatus.RESERVED] } };

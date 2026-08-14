@@ -1,9 +1,8 @@
 import type { Property } from "../types";
-const pics = [
-  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=80",
-  "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1400&q=80",
-  "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1400&q=80",
-];
+const galleryFor = (slug: string) =>
+  ["exterior", "living-room", "bedroom", "kitchen"].map(
+    (view) => `/properties/${slug}/${view}.jpg`,
+  );
 const rows = [
   [
     "1",
@@ -158,5 +157,5 @@ export const properties: Property[] = rows.map((r, i) => ({
     "Green space",
     "Covered parking",
   ],
-  images: [pics[i % 3], pics[(i + 1) % 3], pics[(i + 2) % 3]],
+  images: galleryFor(r[1]),
 }));
