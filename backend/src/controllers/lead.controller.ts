@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "../config/prisma.js";
 import { recordActivity } from "../services/activity.service.js";
 import { assignAgent } from "../services/agent-assignment.service.js";
-import { canAccessLead, managementFilter } from "../utils/access.js";
+import { canAccessLead, canViewLead } from "../utils/access.js";
 
 const active: LeadStatus[] = [
   LeadStatus.NEW,
@@ -164,7 +164,7 @@ export const listLeads: RequestHandler = async (req, res) => {
   const where =
     req.user!.role === Role.CUSTOMER
       ? { customerId: req.user!.id }
-      : managementFilter(req);
+      : {};
   res.json(
     (
       await prisma.lead.findMany({
@@ -239,11 +239,62 @@ export const getLead: RequestHandler = async (req, res) => {
     res.status(404).json({ message: "Lead not found" });
     return;
   }
-  if (!canAccessLead(req, lead)) {
+  if (!canViewLead(req, lead)) {
     res.status(403).json({ message: "You cannot access this lead" });
     return;
   }
   res.json(out(lead));
+};
+
+export const claimLead: RequestHandler = async (req, res) => {
+  const current = await prisma.lead.findUnique({
+    where: { id: String(req.params.id) },
+  });
+  if (!current) {
+    res.status(404).json({ message: "Lead not found" });
+    return;
+  }
+  if (current.assignedAgentId === req.user!.id) {
+    res.status(409).json({ message: "This lead is already assigned to you" });
+    return;
+  }
+  if (!active.includes(current.status)) {
+    res.status(409).json({ message: "Only active leads can be taken over" });
+    return;
+  }
+  const staleBefore = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  if (current.updatedAt > staleBefore) {
+    res.status(409).json({
+      message: "This lead still has recent activity and cannot be taken over yet",
+    });
+    return;
+  }
+  const actor = await prisma.user.findUniqueOrThrow({
+    where: { id: req.user!.id },
+    select: { name: true },
+  });
+  const row = await prisma.$transaction(async (tx) => {
+    await tx.lead.update({
+      where: { id: current.id },
+      data: { assignedAgentId: req.user!.id },
+    });
+    await recordActivity(
+      {
+        leadId: current.id,
+        actorUserId: req.user!.id,
+        type: LeadActivityType.AGENT_ASSIGNED,
+        description: `Lead taken over by ${actor.name} after 7 days without progress`,
+        metadata: {
+          from: current.assignedAgentId,
+          to: req.user!.id,
+          reason: "NO_PROGRESS_7_DAYS",
+        },
+      },
+      tx,
+    );
+    return tx.lead.findUniqueOrThrow({ where: { id: current.id }, include });
+  });
+  res.json(out(row));
 };
 
 export const updateLead: RequestHandler = async (req, res) => {

@@ -62,7 +62,7 @@ const fitStyle = {
 
 export default function LeadDetailPage() {
   const { id } = useParams(),
-    { token } = useAuth(),
+    { token, user } = useAuth(),
     { pick } = useLanguage();
   const [lead, setLead] = useState<Lead | null>(null),
     [insights, setInsights] = useState<RecommendationResponse | null>(null),
@@ -123,6 +123,8 @@ export default function LeadDetailPage() {
     load();
   }, [token, id]);
   if (!lead) return <p>{message || "Loading lead…"}</p>;
+  const canManage =
+    user?.role === "ADMIN" || lead.assignedAgentId === user?.id;
   const act = async (fn: () => Promise<unknown>, success: string) => {
     try {
       await fn();
@@ -192,6 +194,7 @@ export default function LeadDetailPage() {
         <div className="flex gap-2">
           <select
             aria-label="Lead priority"
+            disabled={!canManage}
             value={lead.priority}
             onChange={(e) =>
               act(
@@ -216,6 +219,7 @@ export default function LeadDetailPage() {
           </select>
           <select
             aria-label="Lead status"
+            disabled={!canManage}
             value={lead.status}
             onChange={(e) =>
               act(
@@ -235,6 +239,16 @@ export default function LeadDetailPage() {
         <p role="status" className="mt-4 rounded-xl bg-mint p-3 text-forest">
           {message}
         </p>
+      )}
+      {!canManage && (
+        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-bold">Team-visible lead · read only</p>
+          <p className="mt-1">
+            This lead is assigned to {lead.assignedAgent.name}. If there is no
+            progress for 7 days, return to Pipeline and select Take over this
+            lead before updating customer information.
+          </p>
+        </div>
       )}
       <div className="mt-7 grid gap-6 xl:grid-cols-3">
         <section className="panel">

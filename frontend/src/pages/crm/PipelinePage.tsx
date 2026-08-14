@@ -1,5 +1,5 @@
-import { CalendarClock, GripVertical, Mail, Phone } from "lucide-react";
-import { useEffect, useState } from "react";
+import { CalendarClock, ChevronLeft, ChevronRight, GripVertical, Mail, Phone, UserRoundCheck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { leadApi } from "../../services/api";
@@ -24,7 +24,8 @@ const priorityStyle: Record<LeadPriority, string> = {
 };
 
 export default function PipelinePage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const boardRef = useRef<HTMLDivElement>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -60,6 +61,26 @@ export default function PipelinePage() {
       setDragging(null);
     }
   };
+  const claim = async (id: string) => {
+    if (!token) return;
+    setError("");
+    setUpdating((current) => [...current, id]);
+    try {
+      const updated = await leadApi.claim(token, id);
+      setLeads((current) =>
+        current.map((lead) => (lead.id === id ? updated : lead)),
+      );
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not take over lead");
+    } finally {
+      setUpdating((current) => current.filter((value) => value !== id));
+    }
+  };
+  const scrollBoard = (direction: -1 | 1) =>
+    boardRef.current?.scrollBy({ left: direction * 650, behavior: "smooth" });
+  const isStale = (lead: Lead) =>
+    !["CLOSED", "LOST"].includes(lead.status) &&
+    new Date(lead.updatedAt).getTime() <= Date.now() - 7 * 24 * 60 * 60 * 1000;
   if (loading) return <LoadingState label="Loading sales pipeline..." />;
   return (
     <>
@@ -68,8 +89,8 @@ export default function PipelinePage() {
         <div>
           <h1 className="mt-2 text-4xl font-bold">Pipeline</h1>
           <p className="mt-2 text-sm text-black/45">
-            Drag cards between stages. Every successful move is saved to
-            PostgreSQL.
+            Drag a card or select a status to move it. All team leads are visible;
+            assigned agents remain responsible until a stale lead is taken over.
           </p>
         </div>
         <span className="text-sm text-black/45">{leads.length} leads</span>
@@ -79,7 +100,24 @@ export default function PipelinePage() {
           {error}
         </p>
       )}
-      <div className="mt-7 flex gap-4 overflow-x-auto pb-6">
+      <div className="relative mt-7">
+        <button
+          type="button"
+          aria-label="Scroll pipeline left"
+          onClick={() => scrollBoard(-1)}
+          className="absolute left-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-black/10 bg-white/95 p-3 text-forest shadow-lg hover:bg-mint"
+        >
+          <ChevronLeft />
+        </button>
+        <button
+          type="button"
+          aria-label="Scroll pipeline right"
+          onClick={() => scrollBoard(1)}
+          className="absolute right-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-black/10 bg-white/95 p-3 text-forest shadow-lg hover:bg-mint"
+        >
+          <ChevronRight />
+        </button>
+      <div ref={boardRef} className="flex gap-4 overflow-x-auto px-1 pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {stages.map((stage) => (
           <section
             onDragOver={(e) => e.preventDefault()}
@@ -96,9 +134,14 @@ export default function PipelinePage() {
             <div className="grid gap-3">
               {leads
                 .filter((l) => l.status === stage)
-                .map((l) => (
+                .map((l) => {
+                  const canManage =
+                    user?.role === "ADMIN" || l.assignedAgentId === user?.id;
+                  const canClaim =
+                    user?.role === "AGENT" && !canManage && isStale(l);
+                  return (
                   <article
-                    draggable={!updating.includes(l.id)}
+                    draggable={canManage && !updating.includes(l.id)}
                     onDragStart={() => setDragging(l.id)}
                     onDragEnd={() => setDragging(null)}
                     className={`rounded-2xl bg-white p-4 shadow-sm transition ${dragging === l.id ? "opacity-50" : updating.includes(l.id) ? "opacity-65" : ""}`}
@@ -113,7 +156,7 @@ export default function PipelinePage() {
                       </Link>
                       <GripVertical
                         size={17}
-                        className="cursor-grab text-black/25"
+                        className={canManage ? "cursor-grab text-black/25" : "text-black/10"}
                       />
                     </div>
                     <p className="mt-1 text-sm text-black/50">
@@ -138,6 +181,11 @@ export default function PipelinePage() {
                     <p className="mt-2 text-xs text-black/45">
                       Agent: {l.assignedAgent.name}
                     </p>
+                    {!canManage && (
+                      <p className="mt-2 rounded-lg bg-black/[.035] px-2 py-1 text-xs text-black/55">
+                        Team lead · read only
+                      </p>
+                    )}
                     {l.nextFollowUpAt && !l.followUpCompletedAt && (
                       <p
                         className={`mt-2 flex items-center gap-1 text-xs ${new Date(l.nextFollowUpAt) < new Date() ? "font-bold text-red-600" : "text-black/50"}`}
@@ -169,14 +217,27 @@ export default function PipelinePage() {
                       aria-label={`Status for ${l.customer.name}`}
                       className="mt-3 !py-2 text-sm"
                       value={l.status}
+                      disabled={!canManage || updating.includes(l.id)}
                       onChange={(e) => move(l.id, e.target.value as LeadStatus)}
                     >
                       {stages.map((s) => (
                         <option key={s}>{s}</option>
                       ))}
                     </select>
+                    {canClaim && (
+                      <button
+                        type="button"
+                        className="btn-light mt-3 w-full justify-center !py-2 text-sm"
+                        disabled={updating.includes(l.id)}
+                        onClick={() => claim(l.id)}
+                      >
+                        <UserRoundCheck size={16} />
+                        Take over this lead
+                      </button>
+                    )}
                   </article>
-                ))}
+                  );
+                })}
               {!leads.some((l) => l.status === stage) && (
                 <p className="rounded-xl border border-dashed border-black/10 p-5 text-center text-sm text-black/35">
                   Drop a lead here
@@ -185,6 +246,7 @@ export default function PipelinePage() {
             </div>
           </section>
         ))}
+      </div>
       </div>
     </>
   );

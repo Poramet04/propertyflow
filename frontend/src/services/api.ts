@@ -135,6 +135,11 @@ export const leadApi = {
       headers: auth(token),
       body: JSON.stringify({ status }),
     }),
+  claim: (token: string, id: string) =>
+    request<Lead>(`/leads/${id}/claim`, {
+      method: "POST",
+      headers: auth(token),
+    }),
   update: (token: string, id: string, body: unknown) =>
     request<Lead>(`/leads/${id}`, {
       method: "PATCH",

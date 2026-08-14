@@ -28,6 +28,7 @@ import {
 } from "../controllers/lead-workflow.controller.js";
 import {
   createLead,
+  claimLead,
   getLead,
   listLeads,
   myLeads,
@@ -118,6 +119,12 @@ api.delete(
   withdrawLead,
 );
 api.get("/leads/:id/activities", requireAuth, listActivities);
+api.post(
+  "/leads/:id/claim",
+  requireAuth,
+  allowRoles(Role.AGENT),
+  claimLead,
+);
 api.patch(
   "/leads/:id/priority",
   requireAuth,

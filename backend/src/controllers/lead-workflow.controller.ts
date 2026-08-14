@@ -3,7 +3,7 @@ import type { RequestHandler } from "express";
 import { z } from "zod";
 import { prisma } from "../config/prisma.js";
 import { recordActivity } from "../services/activity.service.js";
-import { canAccessLead } from "../utils/access.js";
+import { canAccessLead, canViewLead } from "../utils/access.js";
 
 async function managedLead(req: Parameters<RequestHandler>[0], id: string) {
   const lead = await prisma.lead.findUnique({ where: { id } });
@@ -21,7 +21,7 @@ export const listActivities: RequestHandler = async (req, res) => {
     res.status(404).json({ message: "Lead not found" });
     return;
   }
-  if (!canAccessLead(req, lead)) {
+  if (!canViewLead(req, lead)) {
     res.status(403).json({ message: "You cannot access this lead" });
     return;
   }

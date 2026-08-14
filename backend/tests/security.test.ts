@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import { Role } from "@prisma/client";
 import { env } from "../src/config/env.js";
 import { allowRoles, requireAuth } from "../src/middleware/auth.js";
-import { canAccessLead, managementFilter } from "../src/utils/access.js";
+import { canAccessLead, canViewLead, managementFilter } from "../src/utils/access.js";
 
 function response() {
   const state = { status: 200, body: null as any };
@@ -117,4 +117,13 @@ test("management filters scope agents but not admins", () => {
     managementFilter({ user: { id: "admin-1", role: Role.ADMIN } } as any),
     {},
   );
+});
+
+test("team agents can view shared leads but only the assignee can manage them", () => {
+  const lead = { customerId: "customer-1", assignedAgentId: "agent-1" };
+  const otherAgent = {
+    user: { id: "agent-2", role: Role.AGENT },
+  } as any;
+  assert.equal(canViewLead(otherAgent, lead), true);
+  assert.equal(canAccessLead(otherAgent, lead), false);
 });

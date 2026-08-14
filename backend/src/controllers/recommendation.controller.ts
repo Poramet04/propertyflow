@@ -5,7 +5,7 @@ import {
   type MatchPreferences,
 } from "../services/matching.service.js";
 import { preferenceSchema } from "./preference.controller.js";
-import { canAccessLead } from "../utils/access.js";
+import { canViewLead } from "../utils/access.js";
 const numberPreference = (p: any): MatchPreferences => ({
   preferredLocations: p?.preferredLocations ?? [],
   propertyTypes: p?.propertyTypes ?? [],
@@ -76,7 +76,7 @@ export const leadRecommendations: RequestHandler = async (req, res) => {
     res.status(404).json({ message: "Lead not found" });
     return;
   }
-  if (!canAccessLead(req, lead) || req.user!.role === "CUSTOMER") {
+  if (!canViewLead(req, lead) || req.user!.role === "CUSTOMER") {
     res
       .status(403)
       .json({ message: "You cannot view customer insights for this lead" });
