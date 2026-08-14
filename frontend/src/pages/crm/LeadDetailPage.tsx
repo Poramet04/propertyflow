@@ -20,6 +20,12 @@ import type {
   RecommendationResponse,
 } from "../../types";
 import { money } from "../../utils/finance";
+import {
+  dayFirstParts,
+  formatDayFirstDateTime,
+  parseDayFirstDateTime,
+} from "../../utils/dateTime";
+import { useLanguage } from "../../hooks/useLanguage";
 
 const stages: LeadStatus[] = [
   "NEW",
@@ -56,15 +62,18 @@ const fitStyle = {
 
 export default function LeadDetailPage() {
   const { id } = useParams(),
-    { token } = useAuth();
+    { token } = useAuth(),
+    { pick } = useLanguage();
   const [lead, setLead] = useState<Lead | null>(null),
     [insights, setInsights] = useState<RecommendationResponse | null>(null),
     [fit, setFit] = useState<PreQualificationResult | null>(null),
     [notes, setNotes] = useState(""),
     [message, setMessage] = useState("");
   const [appointmentDate, setAppointmentDate] = useState(""),
+    [appointmentTime, setAppointmentTime] = useState(""),
     [appointmentNote, setAppointmentNote] = useState(""),
-    [followUp, setFollowUp] = useState("");
+    [followUpDate, setFollowUpDate] = useState(""),
+    [followUpTime, setFollowUpTime] = useState("");
   const [salePrice, setSalePrice] = useState(0),
     [commission, setCommission] = useState(3);
   const [bankName, setBankName] = useState(""),
@@ -85,11 +94,11 @@ export default function LeadDetailPage() {
             l.property.price - (l.customer.loanProfile?.downPayment || 0),
           ),
         );
-        setFollowUp(
-          l.nextFollowUpAt
-            ? new Date(l.nextFollowUpAt).toISOString().slice(0, 16)
-            : "",
-        );
+        const followUpParts = l.nextFollowUpAt
+          ? dayFirstParts(l.nextFollowUpAt)
+          : { date: "", time: "" };
+        setFollowUpDate(followUpParts.date);
+        setFollowUpTime(followUpParts.time);
         const p = l.customer.loanProfile;
         if (p)
           setFit(
@@ -125,16 +134,22 @@ export default function LeadDetailPage() {
   };
   const addAppointment = (e: React.FormEvent) => {
     e.preventDefault();
+    const date = parseDayFirstDateTime(appointmentDate, appointmentTime);
+    if (!date) {
+      setMessage("Enter a valid date as DD/MM/YYYY and select a time.");
+      return;
+    }
     act(
       () =>
         appointmentApi.create(token!, lead.id, {
-          appointmentDate,
+          appointmentDate: date.toISOString(),
           status: "SCHEDULED",
           note: appointmentNote,
         }),
       "Viewing scheduled.",
     );
     setAppointmentDate("");
+    setAppointmentTime("");
     setAppointmentNote("");
   };
   const closeDeal = (e: React.FormEvent) => {
@@ -273,27 +288,47 @@ export default function LeadDetailPage() {
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <section className="panel">
           <h2 className="text-xl font-bold">Follow-up</h2>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <input
-              aria-label="Next follow-up"
-              type="datetime-local"
-              value={followUp}
-              onChange={(e) => setFollowUp(e.target.value)}
-            />
+          <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px_auto]">
+            <label className="text-sm font-semibold">
+              {pick("Day / Month / Year", "วัน / เดือน / ปี")}
+              <input
+                className="mt-1"
+                aria-label="Follow-up date, day month year"
+                inputMode="numeric"
+                placeholder="DD/MM/YYYY"
+                value={followUpDate}
+                onChange={(e) => setFollowUpDate(e.target.value)}
+              />
+            </label>
+            <label className="text-sm font-semibold">
+              {pick("Time", "เวลา")}
+              <input
+                className="mt-1"
+                aria-label="Follow-up time"
+                type="time"
+                value={followUpTime}
+                onChange={(e) => setFollowUpTime(e.target.value)}
+              />
+            </label>
             <button
-              className="btn-light"
-              disabled={!followUp}
-              onClick={() =>
+              className="btn-light self-end"
+              disabled={!followUpDate || !followUpTime}
+              onClick={() => {
+                const date = parseDayFirstDateTime(
+                  followUpDate,
+                  followUpTime,
+                );
+                if (!date) {
+                  setMessage(
+                    "Enter a valid date as DD/MM/YYYY and select a time.",
+                  );
+                  return;
+                }
                 act(
-                  () =>
-                    leadApi.followUp(
-                      token!,
-                      lead.id,
-                      new Date(followUp).toISOString(),
-                    ),
+                  () => leadApi.followUp(token!, lead.id, date.toISOString()),
                   "Follow-up scheduled.",
-                )
-              }
+                );
+              }}
             >
               Set follow-up
             </button>
@@ -317,7 +352,7 @@ export default function LeadDetailPage() {
               className={`mt-3 text-sm ${!lead.followUpCompletedAt && new Date(lead.nextFollowUpAt) < new Date() ? "font-bold text-red-600" : "text-black/50"}`}
             >
               {lead.followUpCompletedAt ? "Completed" : "Due"}:{" "}
-              {new Date(lead.nextFollowUpAt).toLocaleString()}
+              {formatDayFirstDateTime(lead.nextFollowUpAt)}
             </p>
           )}
         </section>
@@ -399,12 +434,29 @@ export default function LeadDetailPage() {
             ))}
           </div>
           <form onSubmit={addAppointment} className="mt-5 grid gap-3">
-            <input
-              type="datetime-local"
-              required
-              value={appointmentDate}
-              onChange={(e) => setAppointmentDate(e.target.value)}
-            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-sm font-semibold">
+                {pick("Day / Month / Year", "วัน / เดือน / ปี")}
+                <input
+                  className="mt-1"
+                  required
+                  inputMode="numeric"
+                  placeholder="DD/MM/YYYY"
+                  value={appointmentDate}
+                  onChange={(e) => setAppointmentDate(e.target.value)}
+                />
+              </label>
+              <label className="text-sm font-semibold">
+                {pick("Time", "เวลา")}
+                <input
+                  className="mt-1"
+                  type="time"
+                  required
+                  value={appointmentTime}
+                  onChange={(e) => setAppointmentTime(e.target.value)}
+                />
+              </label>
+            </div>
             <input
               placeholder="Viewing note"
               value={appointmentNote}

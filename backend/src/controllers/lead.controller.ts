@@ -6,7 +6,7 @@ import { recordActivity } from "../services/activity.service.js";
 import { assignAgent } from "../services/agent-assignment.service.js";
 import { canAccessLead, managementFilter } from "../utils/access.js";
 
-const active = [
+const active: LeadStatus[] = [
   LeadStatus.NEW,
   LeadStatus.CONTACTED,
   LeadStatus.VIEWING,
@@ -179,12 +179,56 @@ export const myLeads: RequestHandler = async (req, res) => {
   res.json(
     (
       await prisma.lead.findMany({
-        where: { customerId: req.user!.id },
+        where: {
+          customerId: req.user!.id,
+          status: { not: LeadStatus.LOST },
+        },
         include,
         orderBy: { createdAt: "desc" },
       })
     ).map(out),
   );
+};
+
+export const withdrawLead: RequestHandler = async (req, res) => {
+  const current = await prisma.lead.findUnique({
+    where: { id: String(req.params.id) },
+  });
+  if (!current) {
+    res.status(404).json({ message: "Enquiry not found" });
+    return;
+  }
+  if (current.customerId !== req.user!.id) {
+    res.status(403).json({ message: "You cannot remove this enquiry" });
+    return;
+  }
+  if (!active.includes(current.status)) {
+    res.status(409).json({
+      message: "Only active enquiries can be removed",
+    });
+    return;
+  }
+  await prisma.$transaction(async (tx) => {
+    await tx.lead.update({
+      where: { id: current.id },
+      data: {
+        status: LeadStatus.LOST,
+        nextFollowUpAt: null,
+        followUpCompletedAt: null,
+      },
+    });
+    await recordActivity(
+      {
+        leadId: current.id,
+        actorUserId: req.user!.id,
+        type: LeadActivityType.STATUS_CHANGED,
+        description: "Customer withdrew property interest",
+        metadata: { from: current.status, to: LeadStatus.LOST },
+      },
+      tx,
+    );
+  });
+  res.status(204).end();
 };
 export const getLead: RequestHandler = async (req, res) => {
   const lead = await prisma.lead.findUnique({

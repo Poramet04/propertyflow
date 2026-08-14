@@ -33,6 +33,7 @@ import {
   myLeads,
   updateLead,
   updateLeadStatus,
+  withdrawLead,
 } from "../controllers/lead.controller.js";
 import {
   createLoanApplication,
@@ -110,6 +111,12 @@ api.get(
 api.get("/leads", requireAuth, listLeads);
 api.post("/leads", requireAuth, createLead);
 api.get("/customers/me/leads", requireAuth, allowRoles(Role.CUSTOMER), myLeads);
+api.delete(
+  "/customers/me/leads/:id",
+  requireAuth,
+  allowRoles(Role.CUSTOMER),
+  withdrawLead,
+);
 api.get("/leads/:id/activities", requireAuth, listActivities);
 api.patch(
   "/leads/:id/priority",

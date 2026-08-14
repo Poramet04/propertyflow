@@ -116,6 +116,11 @@ export const leadApi = {
   list: (token: string) => request<Lead[]>("/leads", { headers: auth(token) }),
   mine: (token: string) =>
     request<Lead[]>("/customers/me/leads", { headers: auth(token) }),
+  withdraw: (token: string, id: string) =>
+    request<void>(`/customers/me/leads/${id}`, {
+      method: "DELETE",
+      headers: auth(token),
+    }),
   get: (token: string, id: string) =>
     request<Lead>(`/leads/${id}`, { headers: auth(token) }),
   create: (token: string, body: unknown) =>

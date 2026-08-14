@@ -1,10 +1,12 @@
 import { SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import PropertyCard from "../components/PropertyCard";
+import { useLanguage } from "../hooks/useLanguage";
 import { useProperties } from "../hooks/useProperties";
 
 export default function PropertiesPage() {
   const { properties, status } = useProperties();
+  const { pick } = useLanguage();
   const [location, setLocation] = useState(""),
     [min, setMin] = useState(0),
     [max, setMax] = useState(10000000),
@@ -63,9 +65,9 @@ export default function PropertiesPage() {
             onChange={(e) => setBeds(Number(e.target.value))}
           >
             <option value="0">Any beds</option>
-            <option value="1">1+ beds</option>
-            <option value="2">2+ beds</option>
-            <option value="3">3+ beds</option>
+            <option value="1">{pick("1 bedroom", "1 ห้องนอน")}</option>
+            <option value="2">{pick("2 bedrooms", "2 ห้องนอน")}</option>
+            <option value="3">{pick("3 bedrooms", "3 ห้องนอน")}</option>
           </select>
           <select
             aria-label="Bathrooms"
@@ -73,9 +75,9 @@ export default function PropertiesPage() {
             onChange={(e) => setBaths(Number(e.target.value))}
           >
             <option value="0">Any baths</option>
-            <option value="1">1+ baths</option>
-            <option value="2">2+ baths</option>
-            <option value="3">3+ baths</option>
+            <option value="1">{pick("1 bathroom", "1 ห้องน้ำ")}</option>
+            <option value="2">{pick("2 bathrooms", "2 ห้องน้ำ")}</option>
+            <option value="3">{pick("3 bathrooms", "3 ห้องน้ำ")}</option>
           </select>
           <select
             aria-label="Property type"
