@@ -18,9 +18,10 @@ import type {
 import { money } from "../../utils/finance";
 import { ErrorState, LoadingState } from "../../components/UiState";
 import { useLanguage } from "../../hooks/useLanguage";
+import { translateKnownText } from "../../i18n/translations";
 export default function DashboardPage() {
   const { token, user } = useAuth(),
-    { pick } = useLanguage(),
+    { isThai, pick } = useLanguage(),
     [data, setData] = useState<DashboardData | null>(null),
     [leads, setLeads] = useState<LeadAnalytics | null>(null),
     [sales, setSales] = useState<SalesAnalytics | null>(null),
@@ -44,21 +45,21 @@ export default function DashboardPage() {
   }, [token]);
   if (error) return <ErrorState message={error} />;
   if (!data || !leads || !sales || !properties)
-    return <LoadingState label="Loading live CRM dashboard…" />;
+    return <LoadingState label={pick("Loading live CRM dashboard...", "กำลังโหลดแดชบอร์ด CRM...")} />;
   const cards = [
-    ["Total Leads", data.kpis.totalLeads, Users],
-    ["New Leads", data.kpis.newLeads, Users],
-    ["Active Leads", data.kpis.activeLeads, Users],
-    ["Lost Leads", data.kpis.lostLeads, Users],
-    ["Upcoming Viewings", data.kpis.upcomingViewings, CalendarClock],
-    ["Closed Deals", sales.closedDeals, Handshake],
-    ["Sales Value", money(data.kpis.monthlySalesValue), Banknote],
+    [pick("Total Leads", "ลีดทั้งหมด"), data.kpis.totalLeads, Users],
+    [pick("New Leads", "ลีดใหม่"), data.kpis.newLeads, Users],
+    [pick("Active Leads", "ลีดที่กำลังดำเนินการ"), data.kpis.activeLeads, Users],
+    [pick("Lost Leads", "ลีดที่ไม่สำเร็จ"), data.kpis.lostLeads, Users],
+    [pick("Upcoming Viewings", "นัดชมที่กำลังจะถึง"), data.kpis.upcomingViewings, CalendarClock],
+    [pick("Closed Deals", "ดีลที่ปิดแล้ว"), sales.closedDeals, Handshake],
+    [pick("Sales Value", "มูลค่าการขาย"), money(data.kpis.monthlySalesValue), Banknote],
     [
-      "Commission Value",
+      pick("Commission Value", "มูลค่าคอมมิชชัน"),
       money(data.kpis.estimatedCommission),
       CircleDollarSign,
     ],
-    ["Overdue Follow-ups", data.kpis.overdueFollowUps, CalendarClock],
+    [pick("Overdue Follow-ups", "ติดตามเกินกำหนด"), data.kpis.overdueFollowUps, CalendarClock],
   ] as const;
   const stages = [
     "NEW",
@@ -70,9 +71,11 @@ export default function DashboardPage() {
   ] as const;
   return (
     <>
-      <p className="eyebrow">Live CRM analytics</p>
+      <p className="eyebrow">{pick("Live CRM analytics", "การวิเคราะห์ CRM แบบเรียลไทม์")}</p>
       <h1 className="mt-2 text-4xl font-bold">
-        {user?.role === "ADMIN" ? "Admin" : "Agent"} dashboard
+        {user?.role === "ADMIN"
+          ? pick("Admin dashboard", "แดชบอร์ดผู้ดูแลระบบ")
+          : pick("Agent dashboard", "แดชบอร์ดเจ้าหน้าที่ขาย")}
       </h1>
       <section className="mt-7 rounded-3xl border border-forest/15 bg-mint/70 p-6">
         <h2 className="text-xl font-bold">
@@ -102,7 +105,7 @@ export default function DashboardPage() {
       </div>
       {data.admin && (
         <section className="panel mt-7">
-          <h2 className="text-2xl font-bold">Admin overview</h2>
+          <h2 className="text-2xl font-bold">{pick("Admin overview", "ภาพรวมผู้ดูแลระบบ")}</h2>
           <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-5">
             {Object.entries(data.admin).map(([k, v]) => (
               <div key={k}>
@@ -121,11 +124,11 @@ export default function DashboardPage() {
         </section>
       )}
       <section className="panel mt-7">
-        <h2 className="text-2xl font-bold">Lead funnel</h2>
+        <h2 className="text-2xl font-bold">{pick("Lead funnel", "กรวยการขาย")}</h2>
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-6">
           {stages.map((s, i) => (
             <div className="rounded-2xl bg-black/[.03] p-4" key={s}>
-              <p className="text-xs text-black/45">{s}</p>
+              <p className="text-xs text-black/45">{isThai ? translateKnownText(s) : s}</p>
               <p className="text-3xl font-bold">{leads.funnel[s]}</p>
               {i < stages.length - 1 && (
                 <div className="mt-2 h-2 rounded-full bg-mint">
@@ -142,16 +145,16 @@ export default function DashboardPage() {
         </div>
         <div className="mt-5 grid gap-3 text-sm sm:grid-cols-4">
           <p>
-            Lead → Viewing <b>{leads.conversions.leadToViewing}%</b>
+            {pick("Lead → Viewing", "ลีด → นัดชม")} <b>{leads.conversions.leadToViewing}%</b>
           </p>
           <p>
-            Viewing → Booking <b>{leads.conversions.viewingToBooking}%</b>
+            {pick("Viewing → Booking", "นัดชม → จอง")} <b>{leads.conversions.viewingToBooking}%</b>
           </p>
           <p>
-            Booking → Closed <b>{leads.conversions.bookingToClose}%</b>
+            {pick("Booking → Closed", "จอง → ปิดการขาย")} <b>{leads.conversions.bookingToClose}%</b>
           </p>
           <p>
-            Overall close <b>{leads.conversions.leadToClose}%</b>
+            {pick("Overall close", "อัตราปิดการขายรวม")} <b>{leads.conversions.leadToClose}%</b>
           </p>
         </div>
       </section>
@@ -161,7 +164,10 @@ export default function DashboardPage() {
             <h2
               className={`text-xl font-bold ${group === "overdue" ? "text-red-700" : ""}`}
             >
-              {group[0].toUpperCase() + group.slice(1)} follow-ups
+              {pick(
+                `${group[0].toUpperCase() + group.slice(1)} follow-ups`,
+                group === "overdue" ? "การติดตามเกินกำหนด" : group === "today" ? "การติดตามวันนี้" : "การติดตามที่กำลังจะถึง",
+              )}
             </h2>
             <div className="mt-4 grid gap-3">
               {data.followUps[group].slice(0, 6).map((f) => (
@@ -171,7 +177,7 @@ export default function DashboardPage() {
                   to={`/crm/leads/${f.id}`}
                 >
                   <p className="font-semibold">
-                    {f.customer} · {f.priority}
+                    {f.customer} · {isThai ? translateKnownText(f.priority) : f.priority}
                   </p>
                   <p className="text-sm text-black/55">{f.property}</p>
                   <p className="text-xs text-black/40">
@@ -180,7 +186,12 @@ export default function DashboardPage() {
                 </Link>
               ))}
               {!data.followUps[group].length && (
-                <p className="text-black/45">No {group} follow-ups.</p>
+                <p className="text-black/45">
+                  {pick(
+                    `No ${group} follow-ups.`,
+                    group === "overdue" ? "ไม่มีรายการติดตามเกินกำหนด" : group === "today" ? "ไม่มีรายการติดตามวันนี้" : "ไม่มีรายการติดตามที่กำลังจะถึง",
+                  )}
+                </p>
               )}
             </div>
           </section>
@@ -188,7 +199,7 @@ export default function DashboardPage() {
       </div>
       <div className="mt-7 grid gap-6 xl:grid-cols-2">
         <section className="panel">
-          <h2 className="text-xl font-bold">Recent activities</h2>
+          <h2 className="text-xl font-bold">{pick("Recent activities", "กิจกรรมล่าสุด")}</h2>
           <div className="mt-4 grid gap-3">
             {data.recentActivities.map((a) => (
               <Link
@@ -196,28 +207,28 @@ export default function DashboardPage() {
                 className="border-l-2 border-forest/20 pl-3"
                 key={a.id}
               >
-                <p className="font-semibold">{a.description}</p>
+                <p className="font-semibold">{isThai ? translateKnownText(a.description) : a.description}</p>
                 <p className="text-xs text-black/45">
-                  {a.lead.customer.name} · {a.actor?.name || "System"} ·{" "}
+                  {a.lead.customer.name} · {a.actor?.name || pick("System", "ระบบ")} ·{" "}
                   {new Date(a.createdAt).toLocaleString()}
                 </p>
               </Link>
             ))}
             {!data.recentActivities.length && (
-              <p className="text-black/45">No activities recorded yet.</p>
+              <p className="text-black/45">{pick("No activities recorded yet.", "ยังไม่มีกิจกรรมที่บันทึกไว้")}</p>
             )}
           </div>
         </section>
         <section className="panel">
-          <h2 className="text-xl font-bold">Property interest</h2>
+          <h2 className="text-xl font-bold">{pick("Property interest", "ความสนใจในอสังหาริมทรัพย์")}</h2>
           <div className="mt-4 grid gap-3">
             {properties.topInterested.slice(0, 6).map((p) => (
               <div key={p.id}>
                 <div className="flex justify-between">
                   <b>{p.title}</b>
-                  <span>{p.leads} leads</span>
+                  <span>{pick(`${p.leads} leads`, `${p.leads} ลีด`)}</span>
                 </div>
-                <p className="text-sm text-black/45">{p.activeLeads} active</p>
+                <p className="text-sm text-black/45">{pick(`${p.activeLeads} active`, `กำลังดำเนินการ ${p.activeLeads}`)}</p>
               </div>
             ))}
           </div>
