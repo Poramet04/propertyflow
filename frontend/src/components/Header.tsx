@@ -11,6 +11,7 @@ export default function Header() {
   const links = [
     ["/properties", pick("Properties", "อสังหาริมทรัพย์")],
     ["/affordability", pick("Affordability", "คำนวณงบประมาณ")],
+    ["/buying-documents", pick("Buying documents", "เอกสารซื้อบ้าน")],
     ...(user?.role === "CUSTOMER"
       ? [
           ["/customer", pick("My dashboard", "แดชบอร์ดของฉัน")],

@@ -89,7 +89,24 @@ export default function AffordabilityPage() {
             </div>
           </div>
           <div className="mt-4 flex gap-2 text-xs leading-5 text-black/45">
-            <Info size={18} className="shrink-0" />
+            <span className="group relative inline-flex shrink-0 self-start">
+              <button
+                type="button"
+                aria-label={pick("What is DTI?", "DTI คืออะไร?")}
+                className="inline-flex rounded-full text-black/45 hover:text-forest focus:outline-none focus-visible:ring-2 focus-visible:ring-forest/30"
+              >
+                <Info size={18} />
+              </button>
+              <span
+                role="tooltip"
+                className="pointer-events-none invisible absolute bottom-full left-0 z-30 mb-2 w-[min(20rem,80vw)] rounded-xl bg-ink px-4 py-3 text-xs font-normal leading-5 text-white opacity-0 shadow-soft transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+              >
+                {pick(
+                  "DTI (Debt-to-Income ratio) compares all monthly debt payments with total monthly income. Example: THB 50,000 income at 40% DTI allows about THB 20,000 of total monthly debt. Existing debt is included, so the remaining amount is the estimated mortgage capacity. This setting is adjustable and is not a universal bank rule.",
+                  "DTI (อัตราส่วนหนี้ต่อรายได้) คือสัดส่วนภาระหนี้ที่ต้องจ่ายต่อเดือนเทียบกับรายได้รวมต่อเดือน ตัวอย่าง: รายได้ 50,000 บาท และตั้ง DTI 40% จะรองรับภาระหนี้รวมประมาณ 20,000 บาทต่อเดือน โดยต้องหักหนี้เดิมออกก่อน ส่วนที่เหลือจึงเป็นค่างวดบ้านโดยประมาณ ค่านี้ปรับได้และไม่ใช่เกณฑ์ตายตัวของทุกธนาคาร",
+                )}
+              </span>
+            </span>
             <p>{pick("40% is an adjustable planning assumption, not a universal bank rule.", "40% เป็นเพียงสมมติฐานสำหรับวางแผนที่ปรับเปลี่ยนได้ ไม่ใช่กฎตายตัวของทุกธนาคาร")}</p>
           </div>
           <div className="mt-6 flex flex-wrap gap-3">

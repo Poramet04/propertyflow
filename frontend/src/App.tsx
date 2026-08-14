@@ -11,6 +11,7 @@ import CustomerDashboardPage from "./pages/CustomerDashboardPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import PropertiesPage from "./pages/PropertiesPage";
 import PropertyDetailPage from "./pages/PropertyDetailPage";
+import BuyingDocumentsPage from "./pages/BuyingDocumentsPage";
 import DashboardPage from "./pages/crm/DashboardPage";
 import LeadDetailPage from "./pages/crm/LeadDetailPage";
 import PipelinePage from "./pages/crm/PipelinePage";
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="properties" element={<PropertiesPage />} />
           <Route path="properties/:slug" element={<PropertyDetailPage />} />
           <Route path="affordability" element={<AffordabilityPage />} />
+          <Route path="buying-documents" element={<BuyingDocumentsPage />} />
           <Route path="login" element={<AuthPage mode="login" />} />
           <Route path="register" element={<AuthPage mode="register" />} />
           <Route
