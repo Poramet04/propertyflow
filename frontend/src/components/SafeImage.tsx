@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 const FALLBACK = "/property-placeholder.svg";
 export default function SafeImage({
   src,
@@ -10,6 +10,8 @@ export default function SafeImage({
   className?: string;
 }) {
   const [current, setCurrent] = useState(src);
+  useEffect(() => setCurrent(src), [src]);
+
   return (
     <img
       src={current}
