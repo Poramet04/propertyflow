@@ -1,4 +1,4 @@
-import { BedDouble, Bath, Heart, MoveUpRight, Ruler } from "lucide-react";
+import { BedDouble, Bath, Heart, Ruler } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../hooks/useLanguage";
 import type { Property } from "../types";
@@ -45,19 +45,13 @@ export default function PropertyCard({
             <span className="flex gap-1"><Bath size={17} />{p.bathrooms}</span>
             <span className="flex gap-1"><Ruler size={17} />{p.areaSqm} m²</span>
           </div>
-          <div className="flex items-center justify-between">
+          <div>
             {p.estimatedMonthlyPayment != null ? (
               <div>
                 <p className="text-xs text-black/40">Est. monthly</p>
                 <p className="font-semibold">{money(p.estimatedMonthlyPayment)}</p>
               </div>
             ) : <span />}
-            <span
-              aria-hidden="true"
-              className="rounded-full bg-mint p-3 text-forest transition group-hover:bg-forest group-hover:text-white"
-            >
-              <MoveUpRight size={20} />
-            </span>
           </div>
         </div>
       </Link>
