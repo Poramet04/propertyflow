@@ -27,6 +27,7 @@ import {
   parseDayFirstDateTime,
 } from "../../utils/dateTime";
 import { useLanguage } from "../../hooks/useLanguage";
+import { translateKnownText } from "../../i18n/translations";
 
 const stages: LeadStatus[] = [
   "NEW",
@@ -69,11 +70,26 @@ const fitStyle = {
   BORDERLINE: "bg-amber-100 text-amber-800",
   ABOVE_ESTIMATED_BUDGET: "bg-red-100 text-red-700",
 };
+const activityTypeThai: Record<string, string> = {
+  LEAD_CREATED: "สร้างลีด",
+  AGENT_ASSIGNED: "มอบหมายเจ้าหน้าที่",
+  STATUS_CHANGED: "เปลี่ยนสถานะลีด",
+  PRIORITY_CHANGED: "เปลี่ยนระดับความสำคัญ",
+  NOTE_ADDED: "เพิ่มบันทึก",
+  FOLLOW_UP_SET: "ตั้งเวลาติดตาม",
+  FOLLOW_UP_COMPLETED: "ติดตามเสร็จสิ้น",
+  APPOINTMENT_CREATED: "สร้างนัดหมาย",
+  APPOINTMENT_UPDATED: "อัปเดตนัดหมาย",
+  LOAN_APPLICATION_CREATED: "สร้างคำขอสินเชื่อ",
+  LOAN_STATUS_CHANGED: "เปลี่ยนสถานะสินเชื่อ",
+  DEAL_CREATED: "สร้างดีล",
+  PROPERTY_STATUS_CHANGED: "เปลี่ยนสถานะอสังหาริมทรัพย์",
+};
 
 export default function LeadDetailPage() {
   const { id } = useParams(),
     { token, user } = useAuth(),
-    { pick } = useLanguage();
+    { isThai, pick } = useLanguage();
   const [lead, setLead] = useState<Lead | null>(null),
     [insights, setInsights] = useState<RecommendationResponse | null>(null),
     [fit, setFit] = useState<PreQualificationResult | null>(null),
@@ -229,7 +245,7 @@ export default function LeadDetailPage() {
             }
           >
             {priorities.map((p) => (
-              <option key={p}>{p}</option>
+              <option key={p} value={p}>{p}</option>
             ))}
           </select>
           </label>
@@ -249,7 +265,7 @@ export default function LeadDetailPage() {
             }
           >
             {stages.map((s) => (
-              <option key={s}>{s}</option>
+              <option key={s} value={s}>{s}</option>
             ))}
           </select>
           </label>
@@ -262,11 +278,12 @@ export default function LeadDetailPage() {
       )}
       {!canManage && (
         <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-bold">Team-visible lead · read only</p>
+          <p className="font-bold">{pick("Team-visible lead · read only", "ลีดของทีม · ดูได้อย่างเดียว")}</p>
           <p className="mt-1">
-            This lead is assigned to {lead.assignedAgent.name}. If there is no
-            progress for 7 days, return to Pipeline and select Take over this
-            lead before updating customer information.
+            {pick(
+              `This lead is assigned to ${lead.assignedAgent.name}. If there is no progress for 7 days, return to Pipeline and select Take over this lead before updating customer information.`,
+              `ลีดนี้มอบหมายให้ ${lead.assignedAgent.name} หากไม่มีความคืบหน้าเป็นเวลา 7 วัน ให้กลับไปที่ไปป์ไลน์และเลือกรับช่วงลีดก่อนแก้ไขข้อมูลลูกค้า`,
+            )}
           </p>
         </div>
       )}
@@ -275,16 +292,16 @@ export default function LeadDetailPage() {
           <h2 className="text-xl font-bold">{pick("Customer", "ลูกค้า")}</h2>
           <dl className="mt-4 grid gap-3 text-sm">
             <div>
-              <dt className="text-black/40">Email / Phone</dt>
+              <dt className="text-black/40">{pick("Email / Phone", "อีเมล / โทรศัพท์")}</dt>
               <dd>
                 {lead.email}
                 <br />
-                {lead.phone || "Not provided"}
+                {lead.phone || pick("Not provided", "ไม่ได้ระบุ")}
               </dd>
             </div>
             <div>
-              <dt className="text-black/40">Estimated budget</dt>
-              <dd>{lead.budget ? money(lead.budget) : "Not provided"}</dd>
+              <dt className="text-black/40">{pick("Estimated budget", "งบประมาณโดยประมาณ")}</dt>
+              <dd>{lead.budget ? money(lead.budget) : pick("Not provided", "ไม่ได้ระบุ")}</dd>
             </div>
           </dl>
         </section>
@@ -315,7 +332,7 @@ export default function LeadDetailPage() {
             }
           >
             <Save size={17} />
-            Save notes
+            {pick("Save notes", "บันทึกข้อความ")}
           </button>
         </section>
       </div>
@@ -370,7 +387,7 @@ export default function LeadDetailPage() {
                 );
               }}
             >
-              Set follow-up
+              {pick("Set follow-up", "ตั้งเวลาติดตาม")}
             </button>
             {lead.nextFollowUpAt && !lead.followUpCompletedAt && (
               <button
@@ -383,7 +400,7 @@ export default function LeadDetailPage() {
                 }
               >
                 <Check size={17} />
-                Complete
+                {pick("Complete", "ทำเสร็จแล้ว")}
               </button>
             )}
           </div>
@@ -391,7 +408,7 @@ export default function LeadDetailPage() {
             <p
               className={`mt-3 text-sm ${!lead.followUpCompletedAt && new Date(lead.nextFollowUpAt) < new Date() ? "font-bold text-red-600" : "text-black/50"}`}
             >
-              {lead.followUpCompletedAt ? "Completed" : "Due"}:{" "}
+              {lead.followUpCompletedAt ? pick("Completed", "เสร็จสิ้น") : pick("Due", "กำหนดติดตาม")}:{" "}
               {formatDayFirstDateTime(lead.nextFollowUpAt)}
             </p>
           )}
@@ -407,27 +424,27 @@ export default function LeadDetailPage() {
               </span>
               <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <dt className="text-black/40">Total income</dt>
+                  <dt className="text-black/40">{pick("Total income", "รายได้รวม")}</dt>
                   <dd>{money(fit.totalMonthlyIncome)}</dd>
                 </div>
                 <div>
-                  <dt className="text-black/40">Existing debt</dt>
+                  <dt className="text-black/40">{pick("Existing debt", "หนี้สินเดิม")}</dt>
                   <dd>{money(fit.totalExistingMonthlyDebt)}</dd>
                 </div>
                 <div>
-                  <dt className="text-black/40">Estimated loan</dt>
+                  <dt className="text-black/40">{pick("Estimated loan", "วงเงินกู้โดยประมาณ")}</dt>
                   <dd>{money(fit.requiredLoanAmount)}</dd>
                 </div>
                 <div>
-                  <dt className="text-black/40">Monthly installment</dt>
+                  <dt className="text-black/40">{pick("Monthly installment", "ค่างวดต่อเดือน")}</dt>
                   <dd>{money(fit.estimatedMonthlyPayment)}</dd>
                 </div>
                 <div>
-                  <dt className="text-black/40">Estimated DTI</dt>
+                  <dt className="text-black/40">{pick("Estimated DTI", "DTI โดยประมาณ")}</dt>
                   <dd>{fit.estimatedDti}%</dd>
                 </div>
                 <div>
-                  <dt className="text-black/40">Estimated property budget</dt>
+                  <dt className="text-black/40">{pick("Estimated property budget", "งบซื้ออสังหาริมทรัพย์โดยประมาณ")}</dt>
                   <dd>{money(fit.estimatedMaximumPropertyPrice)}</dd>
                 </div>
               </dl>
@@ -435,7 +452,7 @@ export default function LeadDetailPage() {
             </>
           ) : (
             <p className="mt-4 text-black/50">
-              Customer has no saved affordability profile.
+              {pick("Customer has no saved affordability profile.", "ลูกค้ายังไม่มีข้อมูลความสามารถในการซื้อที่บันทึกไว้")}
             </p>
           )}
         </section>
@@ -457,7 +474,7 @@ export default function LeadDetailPage() {
               >
                 <div>
                   <b>{new Date(a.appointmentDate).toLocaleString()}</b>
-                  <p className="text-sm text-black/50">{a.note || "No note"}</p>
+                  <p className="text-sm text-black/50">{a.note || pick("No note", "ไม่มีหมายเหตุ")}</p>
                 </div>
                 <label className="text-xs font-semibold text-black/55">
                   {pick("Appointment status", "สถานะนัดหมาย")}
@@ -477,7 +494,7 @@ export default function LeadDetailPage() {
                   }
                 >
                   {appointmentStatuses.map((s) => (
-                    <option key={s}>{s}</option>
+                    <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
                 </label>
@@ -515,13 +532,13 @@ export default function LeadDetailPage() {
               </label>
             </div>
             <input
-              placeholder="Viewing note"
+              placeholder={pick("Viewing note", "หมายเหตุนัดชม")}
               value={appointmentNote}
               onChange={(e) => setAppointmentNote(e.target.value)}
             />
             <button className="btn-light">
               <CalendarPlus size={17} />
-              Schedule viewing
+              {pick("Schedule viewing", "สร้างนัดชม")}
             </button>
           </form>
         </section>
@@ -610,20 +627,20 @@ export default function LeadDetailPage() {
                 }
               >
                 {loanStatuses.map((s) => (
-                  <option key={s}>{s}</option>
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
               </label>
             </div>
           ))}
           {!lead.loanApplications.length && (
-            <p className="text-black/45">No bank workflow recorded yet.</p>
+            <p className="text-black/45">{pick("No bank workflow recorded yet.", "ยังไม่มีขั้นตอนสินเชื่อที่บันทึกไว้")}</p>
           )}
         </div>
         <form onSubmit={createLoan} className="mt-5 grid gap-3 md:grid-cols-3">
           <input
             required
-            placeholder="Bank name"
+            placeholder={pick("Bank name", "ชื่อธนาคาร")}
             value={bankName}
             onChange={(e) => setBankName(e.target.value)}
           />
@@ -635,12 +652,12 @@ export default function LeadDetailPage() {
             onChange={(e) => setLoanAmount(Number(e.target.value))}
           />
           <input
-            placeholder="Note"
+            placeholder={pick("Note", "หมายเหตุ")}
             value={loanNote}
             onChange={(e) => setLoanNote(e.target.value)}
           />
           <button className="btn-light md:col-span-3">
-            Create loan application
+            {pick("Create loan application", "สร้างคำขอสินเชื่อ")}
           </button>
         </form>
       </section>
@@ -649,22 +666,22 @@ export default function LeadDetailPage() {
         <div className="mt-5 grid gap-4">
           {lead.activities.map((a) => (
             <div className="border-l-2 border-forest/20 pl-4" key={a.id}>
-              <p className="font-semibold">{a.description}</p>
+              <p className="font-semibold">{isThai ? translateKnownText(a.description) : a.description}</p>
               <p className="text-xs text-black/45">
-                {a.type.replaceAll("_", " ")} · {a.actor?.name || "System"} ·{" "}
+                {isThai ? activityTypeThai[a.type] || a.type.replaceAll("_", " ") : a.type.replaceAll("_", " ")} · {a.actor?.name || pick("System", "ระบบ")} ·{" "}
                 {new Date(a.createdAt).toLocaleString()}
               </p>
             </div>
           ))}
           {!lead.activities.length && (
-            <p className="text-black/45">No activity recorded yet.</p>
+            <p className="text-black/45">{pick("No activity recorded yet.", "ยังไม่มีกิจกรรมที่บันทึกไว้")}</p>
           )}
         </div>
       </section>
       {insights && (
         <section className="panel mt-6">
           <h2 className="text-2xl font-bold">
-            Recommended properties for this customer
+            {pick("Recommended properties for this customer", "อสังหาริมทรัพย์แนะนำสำหรับลูกค้ารายนี้")}
           </h2>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
             {insights.recommendations.slice(0, 5).map((r) => (
