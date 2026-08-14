@@ -2,20 +2,24 @@ import {
   BarChart3,
   Building2,
   KanbanSquare,
+  Languages,
   LogOut,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useLanguage } from "../hooks/useLanguage";
 export default function CrmLayout() {
   const { user, logout } = useAuth();
+  const { isThai, pick, toggleLanguage } = useLanguage();
   const links: Array<[string, LucideIcon, string]> = [
-    ["/crm", BarChart3, "Dashboard"],
-    ["/crm/pipeline", KanbanSquare, "Pipeline"],
-    ["/crm/properties", Building2, "Properties"],
+    ["/crm", BarChart3, pick("Dashboard", "แดชบอร์ด")],
+    ["/crm/pipeline", KanbanSquare, pick("Pipeline", "ไปป์ไลน์")],
+    ["/crm/properties", Building2, pick("Properties", "อสังหาริมทรัพย์")],
   ];
-  if (user?.role === "ADMIN") links.push(["/crm/users", Users, "Users"]);
+  if (user?.role === "ADMIN")
+    links.push(["/crm/users", Users, pick("Users", "ผู้ใช้งาน")]);
   return (
     <div className="min-h-screen bg-[#f4f6f2] lg:flex">
       <aside className="bg-ink p-4 text-white lg:min-h-screen lg:w-72 lg:p-7">
@@ -37,6 +41,14 @@ export default function CrmLayout() {
         <p className="mt-4 text-sm text-white/50">
           {user?.name} · {user?.role}
         </p>
+        <button
+          type="button"
+          onClick={toggleLanguage}
+          className="mt-4 inline-flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10"
+          aria-label={pick("Switch to Thai", "เปลี่ยนเป็นภาษาอังกฤษ")}
+        >
+          <Languages size={17} /> {isThai ? "EN" : "ไทย"}
+        </button>
         <nav className="mt-5 flex gap-2 overflow-x-auto pb-1 lg:mt-8 lg:grid">
           {links.map(([to, Icon, label]) => (
             <NavLink
@@ -57,7 +69,7 @@ export default function CrmLayout() {
           className="mt-8 hidden items-center gap-2 text-sm text-white/60 lg:flex"
         >
           <LogOut size={17} />
-          Log out
+          {pick("Log out", "ออกจากระบบ")}
         </button>
       </aside>
       <main className="min-w-0 flex-1 p-4 sm:p-5 md:p-8 lg:p-10">

@@ -1,4 +1,9 @@
-import { AppointmentStatus, LeadActivityType, Role } from "@prisma/client";
+import {
+  AppointmentStatus,
+  LeadActivityType,
+  LeadStatus,
+  Role,
+} from "@prisma/client";
 import type { RequestHandler } from "express";
 import { z } from "zod";
 import { prisma } from "../config/prisma.js";
@@ -90,6 +95,31 @@ export const updateAppointment: RequestHandler = async (req, res) => {
       },
       tx,
     );
+    if (
+      data.status === AppointmentStatus.COMPLETED &&
+      ([LeadStatus.NEW, LeadStatus.CONTACTED] as LeadStatus[]).includes(
+        current.lead.status,
+      )
+    ) {
+      await tx.lead.update({
+        where: { id: current.leadId },
+        data: { status: LeadStatus.VIEWING },
+      });
+      await recordActivity(
+        {
+          leadId: current.leadId,
+          actorUserId: req.user!.id,
+          type: LeadActivityType.STATUS_CHANGED,
+          description: `Lead moved from ${current.lead.status} to VIEWING after completed appointment`,
+          metadata: {
+            from: current.lead.status,
+            to: LeadStatus.VIEWING,
+            reason: "APPOINTMENT_COMPLETED",
+          },
+        },
+        tx,
+      );
+    }
     return updated;
   });
   res.json(row);

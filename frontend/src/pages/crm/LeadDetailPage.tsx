@@ -22,6 +22,7 @@ import type {
 import { money } from "../../utils/finance";
 import {
   dayFirstParts,
+  formatDayFirstEntry,
   formatDayFirstDateTime,
   parseDayFirstDateTime,
 } from "../../utils/dateTime";
@@ -54,6 +55,15 @@ const loanStatuses: LoanApplicationStatus[] = [
   "DECLINED",
   "CANCELLED",
 ];
+const quarterHourTimes = Array.from({ length: 96 }, (_, index) => {
+  const hour = Math.floor(index / 4);
+  const minute = (index % 4) * 15;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+});
+const timesWithCurrent = (current: string) =>
+  current && !quarterHourTimes.includes(current)
+    ? [current, ...quarterHourTimes]
+    : quarterHourTimes;
 const fitStyle = {
   LIKELY_WITHIN_ESTIMATE: "bg-emerald-100 text-emerald-800",
   BORDERLINE: "bg-amber-100 text-amber-800",
@@ -183,15 +193,20 @@ export default function LeadDetailPage() {
   };
   return (
     <>
-      <p className="eyebrow">Lead detail</p>
+      <p className="eyebrow">{pick("Lead detail", "รายละเอียดลีด")}</p>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold">{lead.customer.name}</h1>
           <p className="mt-2 text-sm text-black/45">
-            Assigned to {lead.assignedAgent.name}
+            {pick("Assigned to", "ผู้รับผิดชอบ")}: {lead.assignedAgent.name}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <span className="self-center text-xs font-bold uppercase tracking-wide text-black/45">
+            {pick("Lead controls", "การควบคุมลีด")}
+          </span>
+          <label className="text-xs font-semibold text-black/55">
+            {pick("Lead priority", "ระดับความสำคัญ")}
           <select
             aria-label="Lead priority"
             disabled={!canManage}
@@ -209,15 +224,19 @@ export default function LeadDetailPage() {
             }
             className={
               lead.priority === "HOT"
-                ? "border-red-300 bg-red-50 font-bold text-red-700"
-                : "max-w-44"
+                ? "mt-1 border-red-300 bg-red-50 font-bold text-red-700"
+                : "mt-1 max-w-44"
             }
           >
             {priorities.map((p) => (
               <option key={p}>{p}</option>
             ))}
           </select>
+          </label>
+          <label className="text-xs font-semibold text-black/55">
+            {pick("Lead status", "สถานะลีด")}
           <select
+            className="mt-1"
             aria-label="Lead status"
             disabled={!canManage}
             value={lead.status}
@@ -233,6 +252,7 @@ export default function LeadDetailPage() {
               <option key={s}>{s}</option>
             ))}
           </select>
+          </label>
         </div>
       </div>
       {message && (
@@ -252,7 +272,7 @@ export default function LeadDetailPage() {
       )}
       <div className="mt-7 grid gap-6 xl:grid-cols-3">
         <section className="panel">
-          <h2 className="text-xl font-bold">Customer</h2>
+          <h2 className="text-xl font-bold">{pick("Customer", "ลูกค้า")}</h2>
           <dl className="mt-4 grid gap-3 text-sm">
             <div>
               <dt className="text-black/40">Email / Phone</dt>
@@ -269,7 +289,7 @@ export default function LeadDetailPage() {
           </dl>
         </section>
         <section className="panel">
-          <h2 className="text-xl font-bold">Property</h2>
+          <h2 className="text-xl font-bold">{pick("Property", "อสังหาริมทรัพย์")}</h2>
           <p className="mt-4 text-lg font-bold">{lead.property.title}</p>
           <p className="text-black/50">
             {lead.property.location}, {lead.property.province}
@@ -279,7 +299,7 @@ export default function LeadDetailPage() {
           </p>
         </section>
         <section className="panel">
-          <h2 className="text-xl font-bold">Sales notes</h2>
+          <h2 className="text-xl font-bold">{pick("Sales notes", "บันทึกการขาย")}</h2>
           <textarea
             className="mt-4 min-h-32 w-full rounded-xl border border-black/10 p-3"
             value={notes}
@@ -301,7 +321,7 @@ export default function LeadDetailPage() {
       </div>
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <section className="panel">
-          <h2 className="text-xl font-bold">Follow-up</h2>
+          <h2 className="text-xl font-bold">{pick("Follow-up", "การติดตาม")}</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px_auto]">
             <label className="text-sm font-semibold">
               {pick("Day / Month / Year", "วัน / เดือน / ปี")}
@@ -311,18 +331,24 @@ export default function LeadDetailPage() {
                 inputMode="numeric"
                 placeholder="DD/MM/YYYY"
                 value={followUpDate}
-                onChange={(e) => setFollowUpDate(e.target.value)}
+                onChange={(e) =>
+                  setFollowUpDate(formatDayFirstEntry(e.target.value))
+                }
               />
             </label>
             <label className="text-sm font-semibold">
               {pick("Time", "เวลา")}
-              <input
+              <select
                 className="mt-1"
                 aria-label="Follow-up time"
-                type="time"
                 value={followUpTime}
                 onChange={(e) => setFollowUpTime(e.target.value)}
-              />
+              >
+                <option value="">{pick("Select time", "เลือกเวลา")}</option>
+                {timesWithCurrent(followUpTime).map((time) => (
+                  <option key={time} value={time}>{time}</option>
+                ))}
+              </select>
             </label>
             <button
               className="btn-light self-end"
@@ -371,7 +397,7 @@ export default function LeadDetailPage() {
           )}
         </section>
         <section className="panel">
-          <h2 className="text-xl font-bold">Financial snapshot</h2>
+          <h2 className="text-xl font-bold">{pick("Financial snapshot", "ภาพรวมการเงิน")}</h2>
           {fit ? (
             <>
               <span
@@ -416,7 +442,13 @@ export default function LeadDetailPage() {
       </div>
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <section className="panel">
-          <h2 className="text-xl font-bold">Appointments</h2>
+          <h2 className="text-xl font-bold">{pick("Appointments", "นัดหมาย")}</h2>
+          <p className="mt-2 text-sm text-black/50">
+            {pick(
+              "Appointment status is separate from lead status. Completing a viewing moves an early-stage lead to VIEWING.",
+              "สถานะนัดหมายแยกจากสถานะลีด เมื่อนัดชมเสร็จ ระบบจะเลื่อนลีดระยะแรกไปเป็น นัดชม โดยอัตโนมัติ",
+            )}
+          </p>
           <div className="mt-4 grid gap-2">
             {lead.appointments.map((a) => (
               <div
@@ -427,8 +459,12 @@ export default function LeadDetailPage() {
                   <b>{new Date(a.appointmentDate).toLocaleString()}</b>
                   <p className="text-sm text-black/50">{a.note || "No note"}</p>
                 </div>
+                <label className="text-xs font-semibold text-black/55">
+                  {pick("Appointment status", "สถานะนัดหมาย")}
                 <select
+                  className="mt-1"
                   aria-label="Appointment status"
+                  disabled={!canManage}
                   value={a.status}
                   onChange={(e) =>
                     act(
@@ -444,6 +480,7 @@ export default function LeadDetailPage() {
                     <option key={s}>{s}</option>
                   ))}
                 </select>
+                </label>
               </div>
             ))}
           </div>
@@ -457,18 +494,24 @@ export default function LeadDetailPage() {
                   inputMode="numeric"
                   placeholder="DD/MM/YYYY"
                   value={appointmentDate}
-                  onChange={(e) => setAppointmentDate(e.target.value)}
+                  onChange={(e) =>
+                    setAppointmentDate(formatDayFirstEntry(e.target.value))
+                  }
                 />
               </label>
               <label className="text-sm font-semibold">
                 {pick("Time", "เวลา")}
-                <input
+                <select
                   className="mt-1"
-                  type="time"
                   required
                   value={appointmentTime}
                   onChange={(e) => setAppointmentTime(e.target.value)}
-                />
+                >
+                  <option value="">{pick("Select time", "เลือกเวลา")}</option>
+                  {quarterHourTimes.map((time) => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
               </label>
             </div>
             <input
@@ -483,7 +526,7 @@ export default function LeadDetailPage() {
           </form>
         </section>
         <section className="panel">
-          <h2 className="text-xl font-bold">Deal</h2>
+          <h2 className="text-xl font-bold">{pick("Deal", "ดีล")}</h2>
           {lead.deal ? (
             <div className="mt-5 rounded-2xl bg-mint p-5">
               <p className="text-3xl font-bold text-forest">
@@ -529,10 +572,12 @@ export default function LeadDetailPage() {
         </section>
       </div>
       <section className="panel mt-6">
-        <h2 className="text-2xl font-bold">Loan applications</h2>
+        <h2 className="text-2xl font-bold">{pick("Loan applications", "คำขอสินเชื่อ")}</h2>
         <p className="mt-2 text-sm text-black/50">
-          Statuses are recorded manually by Agent/Admin and are never inferred
-          from the estimate.
+          {pick(
+            "Loan statuses are recorded manually by the assigned Agent or Admin and are never inferred from the estimate.",
+            "สถานะสินเชื่อบันทึกด้วยตนเองโดยเจ้าหน้าที่ผู้รับผิดชอบหรือผู้ดูแลระบบ และไม่ได้นำผลประมาณการมาเปลี่ยนสถานะอัตโนมัติ",
+          )}
         </p>
         <div className="mt-4 grid gap-3">
           {lead.loanApplications.map((a) => (
@@ -543,11 +588,16 @@ export default function LeadDetailPage() {
               <div>
                 <b>{a.bankName}</b>
                 <p className="text-sm text-black/50">
-                  Requested {money(a.requestedLoanAmount)} ·{" "}
-                  {a.note || "No note"}
+                  {pick("Requested", "วงเงินที่ขอ")} {money(a.requestedLoanAmount)} ·{" "}
+                  {a.note || pick("No note", "ไม่มีหมายเหตุ")}
                 </p>
               </div>
+              <label className="text-xs font-semibold text-black/55">
+                {pick("Loan status", "สถานะสินเชื่อ")}
               <select
+                className="mt-1"
+                aria-label={`Loan status for ${a.bankName}`}
+                disabled={!canManage}
                 value={a.status}
                 onChange={(e) =>
                   act(
@@ -563,6 +613,7 @@ export default function LeadDetailPage() {
                   <option key={s}>{s}</option>
                 ))}
               </select>
+              </label>
             </div>
           ))}
           {!lead.loanApplications.length && (
@@ -594,7 +645,7 @@ export default function LeadDetailPage() {
         </form>
       </section>
       <section className="panel mt-6">
-        <h2 className="text-2xl font-bold">Activity timeline</h2>
+        <h2 className="text-2xl font-bold">{pick("Activity timeline", "ประวัติกิจกรรม")}</h2>
         <div className="mt-5 grid gap-4">
           {lead.activities.map((a) => (
             <div className="border-l-2 border-forest/20 pl-4" key={a.id}>
