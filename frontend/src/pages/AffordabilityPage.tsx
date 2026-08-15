@@ -160,7 +160,21 @@ export default function AffordabilityPage() {
                 )}
               </span>
             </span>
-            <p>{pick("40% is an adjustable planning assumption, not a universal bank rule.", "40% เป็นเพียงสมมติฐานสำหรับวางแผนที่ปรับเปลี่ยนได้ ไม่ใช่กฎตายตัวของทุกธนาคาร")}</p>
+            <p>
+              {pick(
+                `${form.maxDti}% is your adjustable planning assumption. It limits all monthly debt payments, including existing debt and the new mortgage repayment. It is not a universal bank rule.`,
+                `${form.maxDti}% คือสมมติฐานที่คุณตั้งไว้สำหรับจำกัดภาระหนี้ต่อเดือนทั้งหมด ซึ่งรวมทั้งหนี้เดิมและค่างวดบ้านใหม่ ค่านี้ปรับได้และไม่ใช่กฎตายตัวของทุกธนาคาร`,
+              )}
+            </p>
+          </div>
+          <div className="mt-3 flex gap-2 text-xs leading-5 text-black/45">
+            <Info className="mt-0.5 shrink-0" size={18} />
+            <p>
+              {pick(
+                `The ${form.safetyMin}%–${form.safetyMax}% safety range recommends a property price below your calculated maximum, leaving more room for living costs and unexpected expenses.`,
+                `ช่วงงบปลอดภัย ${form.safetyMin}%–${form.safetyMax}% คือช่วงราคาบ้านที่ต่ำกว่างบสูงสุดที่คำนวณได้ เพื่อเหลือพื้นที่สำหรับค่าครองชีพและค่าใช้จ่ายไม่คาดคิด`,
+              )}
+            </p>
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <button disabled={busy} className="btn-primary" onClick={() => calculate(false)}>
@@ -279,6 +293,12 @@ export default function AffordabilityPage() {
                       <div>
                         <p className="text-xs text-white/55">{pick("Below maximum by", "ต่ำกว่าวงเงินสูงสุด")}</p>
                         <p className="mt-1 font-bold">{money(result.maxLoanAmount - loanResult.loanAmount)}</p>
+                        <p className="mt-1 text-xs leading-5 text-white/50">
+                          {pick(
+                            "The unused portion of your estimated borrowing capacity—not interest or extra cash.",
+                            "คือวงเงินส่วนที่คุณเลือกไม่กู้ ไม่ใช่ดอกเบี้ยหรือเงินสดที่ได้รับเพิ่ม",
+                          )}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-white/55">{pick("Property budget with your down payment", "งบซื้อบ้านเมื่อรวมเงินดาวน์")}</p>
