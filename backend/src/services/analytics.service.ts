@@ -1,5 +1,6 @@
 import { LeadStatus, Role } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
+import { monthRange } from "../utils/month.js";
 const order: LeadStatus[] = [
   LeadStatus.NEW,
   LeadStatus.CONTACTED,
@@ -10,10 +11,14 @@ const order: LeadStatus[] = [
 ];
 export const scopeFor = (role: Role, id: string) =>
   role === Role.ADMIN ? {} : { assignedAgentId: id };
-export async function leadAnalytics(role: Role, id: string) {
+export async function leadAnalytics(role: Role, id: string, month?: unknown) {
+  const period = monthRange(month);
   const scope = scopeFor(role, id),
     leads = await prisma.lead.findMany({
-      where: scope,
+      where: {
+        ...scope,
+        createdAt: { gte: period.start, lt: period.end },
+      },
       select: {
         id: true,
         status: true,
@@ -84,22 +89,24 @@ export async function leadAnalytics(role: Role, id: string) {
     }),
   };
 }
-export async function salesAnalytics(role: Role, id: string) {
-  const where = role === Role.ADMIN ? {} : { agentId: id },
-    month = new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+export async function salesAnalytics(role: Role, id: string, month?: unknown) {
+  const period = monthRange(month),
+    where = {
+      ...(role === Role.ADMIN ? {} : { agentId: id }),
+      closedAt: { gte: period.start, lt: period.end },
+    },
     deals = await prisma.deal.findMany({
       where,
       include: { lead: { select: { createdAt: true } } },
     }),
-    monthly = deals.filter((d) => d.closedAt >= month),
     sum = (xs: typeof deals, key: "salePrice" | "commissionAmount") =>
       xs.reduce((a, d) => a + Number(d[key]), 0),
     days = deals.map(
       (d) => (d.closedAt.getTime() - d.lead.createdAt.getTime()) / 86400000,
     );
   return {
-    monthlyClosedSalesValue: sum(monthly, "salePrice"),
-    monthlyCommissions: sum(monthly, "commissionAmount"),
+    monthlyClosedSalesValue: sum(deals, "salePrice"),
+    monthlyCommissions: sum(deals, "commissionAmount"),
     averageSalePrice: deals.length ? sum(deals, "salePrice") / deals.length : 0,
     closedDeals: deals.length,
     averageDaysToClose: days.length

@@ -1,6 +1,6 @@
-import { CalendarPlus, Check, Save } from "lucide-react";
+import { ArrowLeft, CalendarPlus, Check, Save } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import {
   appointmentApi,
@@ -21,10 +21,9 @@ import type {
 } from "../../types";
 import { money } from "../../utils/finance";
 import {
-  dayFirstParts,
-  formatDayFirstEntry,
-  formatDayFirstDateTime,
-  parseDayFirstDateTime,
+  dateTimeInputParts,
+  formatGregorianDateTime,
+  parseDateTimeInput,
 } from "../../utils/dateTime";
 import { useLanguage } from "../../hooks/useLanguage";
 import { translateKnownText } from "../../i18n/translations";
@@ -56,15 +55,6 @@ const loanStatuses: LoanApplicationStatus[] = [
   "DECLINED",
   "CANCELLED",
 ];
-const quarterHourTimes = Array.from({ length: 96 }, (_, index) => {
-  const hour = Math.floor(index / 4);
-  const minute = (index % 4) * 15;
-  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-});
-const timesWithCurrent = (current: string) =>
-  current && !quarterHourTimes.includes(current)
-    ? [current, ...quarterHourTimes]
-    : quarterHourTimes;
 const fitStyle = {
   LIKELY_WITHIN_ESTIMATE: "bg-emerald-100 text-emerald-800",
   BORDERLINE: "bg-amber-100 text-amber-800",
@@ -88,6 +78,7 @@ const activityTypeThai: Record<string, string> = {
 
 export default function LeadDetailPage() {
   const { id } = useParams(),
+    navigate = useNavigate(),
     { token, user } = useAuth(),
     { isThai, pick } = useLanguage();
   const [lead, setLead] = useState<Lead | null>(null),
@@ -121,7 +112,7 @@ export default function LeadDetailPage() {
           ),
         );
         const followUpParts = l.nextFollowUpAt
-          ? dayFirstParts(l.nextFollowUpAt)
+          ? dateTimeInputParts(l.nextFollowUpAt)
           : { date: "", time: "" };
         setFollowUpDate(followUpParts.date);
         setFollowUpTime(followUpParts.time);
@@ -162,9 +153,9 @@ export default function LeadDetailPage() {
   };
   const addAppointment = (e: React.FormEvent) => {
     e.preventDefault();
-    const date = parseDayFirstDateTime(appointmentDate, appointmentTime);
+    const date = parseDateTimeInput(appointmentDate, appointmentTime);
     if (!date) {
-      setMessage("Enter a valid date as DD/MM/YYYY and select a time.");
+      setMessage("Enter a valid Gregorian date and time.");
       return;
     }
     act(
@@ -209,6 +200,14 @@ export default function LeadDetailPage() {
   };
   return (
     <>
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className="btn-light mb-5 !py-2"
+      >
+        <ArrowLeft size={17} />
+        {pick("Back", "ย้อนกลับ")}
+      </button>
       <p className="eyebrow">{pick("Lead detail", "รายละเอียดลีด")}</p>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -287,7 +286,7 @@ export default function LeadDetailPage() {
           </p>
         </div>
       )}
-      <div className="mt-7 grid gap-6 xl:grid-cols-3">
+      <div className="mt-7 grid gap-6 md:grid-cols-2">
         <section className="panel">
           <h2 className="text-xl font-bold">{pick("Customer", "ลูกค้า")}</h2>
           <dl className="mt-4 grid gap-3 text-sm">
@@ -315,7 +314,7 @@ export default function LeadDetailPage() {
             {money(lead.property.price)}
           </p>
         </section>
-        <section className="panel">
+        <section className="panel md:col-span-2">
           <h2 className="text-xl font-bold">{pick("Sales notes", "บันทึกการขาย")}</h2>
           <textarea
             className="mt-4 min-h-32 w-full rounded-xl border border-black/10 p-3"
@@ -336,48 +335,43 @@ export default function LeadDetailPage() {
           </button>
         </section>
       </div>
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+      <div className="mt-6 grid gap-6 md:grid-cols-2">
         <section className="panel">
           <h2 className="text-xl font-bold">{pick("Follow-up", "การติดตาม")}</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px_auto]">
             <label className="text-sm font-semibold">
-              {pick("Day / Month / Year", "วัน / เดือน / ปี")}
+              {pick("Date (Gregorian)", "วันที่ (ค.ศ.)")}
               <input
                 className="mt-1"
+                type="date"
+                lang="en-GB"
                 aria-label="Follow-up date, day month year"
-                inputMode="numeric"
-                placeholder="DD/MM/YYYY"
                 value={followUpDate}
-                onChange={(e) =>
-                  setFollowUpDate(formatDayFirstEntry(e.target.value))
-                }
+                onChange={(e) => setFollowUpDate(e.target.value)}
               />
             </label>
             <label className="text-sm font-semibold">
               {pick("Time", "เวลา")}
-              <select
+              <input
                 className="mt-1"
+                type="time"
+                step="60"
                 aria-label="Follow-up time"
                 value={followUpTime}
                 onChange={(e) => setFollowUpTime(e.target.value)}
-              >
-                <option value="">{pick("Select time", "เลือกเวลา")}</option>
-                {timesWithCurrent(followUpTime).map((time) => (
-                  <option key={time} value={time}>{time}</option>
-                ))}
-              </select>
+              />
             </label>
             <button
               className="btn-light self-end"
               disabled={!followUpDate || !followUpTime}
               onClick={() => {
-                const date = parseDayFirstDateTime(
+                const date = parseDateTimeInput(
                   followUpDate,
                   followUpTime,
                 );
                 if (!date) {
                   setMessage(
-                    "Enter a valid date as DD/MM/YYYY and select a time.",
+                    "Enter a valid Gregorian date and time.",
                   );
                   return;
                 }
@@ -409,7 +403,7 @@ export default function LeadDetailPage() {
               className={`mt-3 text-sm ${!lead.followUpCompletedAt && new Date(lead.nextFollowUpAt) < new Date() ? "font-bold text-red-600" : "text-black/50"}`}
             >
               {lead.followUpCompletedAt ? pick("Completed", "เสร็จสิ้น") : pick("Due", "กำหนดติดตาม")}:{" "}
-              {formatDayFirstDateTime(lead.nextFollowUpAt)}
+              {formatGregorianDateTime(lead.nextFollowUpAt)}
             </p>
           )}
         </section>
@@ -457,7 +451,7 @@ export default function LeadDetailPage() {
           )}
         </section>
       </div>
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+      <div className="mt-6 grid gap-6 md:grid-cols-2">
         <section className="panel">
           <h2 className="text-xl font-bold">{pick("Appointments", "นัดหมาย")}</h2>
           <p className="mt-2 text-sm text-black/50">
@@ -473,7 +467,7 @@ export default function LeadDetailPage() {
                 key={a.id}
               >
                 <div>
-                  <b>{new Date(a.appointmentDate).toLocaleString()}</b>
+                  <b>{formatGregorianDateTime(a.appointmentDate)}</b>
                   <p className="text-sm text-black/50">{a.note || pick("No note", "ไม่มีหมายเหตุ")}</p>
                 </div>
                 <label className="text-xs font-semibold text-black/55">
@@ -504,31 +498,26 @@ export default function LeadDetailPage() {
           <form onSubmit={addAppointment} className="mt-5 grid gap-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="text-sm font-semibold">
-                {pick("Day / Month / Year", "วัน / เดือน / ปี")}
+                {pick("Date (Gregorian)", "วันที่ (ค.ศ.)")}
                 <input
                   className="mt-1"
                   required
-                  inputMode="numeric"
-                  placeholder="DD/MM/YYYY"
+                  type="date"
+                  lang="en-GB"
                   value={appointmentDate}
-                  onChange={(e) =>
-                    setAppointmentDate(formatDayFirstEntry(e.target.value))
-                  }
+                  onChange={(e) => setAppointmentDate(e.target.value)}
                 />
               </label>
               <label className="text-sm font-semibold">
                 {pick("Time", "เวลา")}
-                <select
+                <input
                   className="mt-1"
                   required
+                  type="time"
+                  step="60"
                   value={appointmentTime}
                   onChange={(e) => setAppointmentTime(e.target.value)}
-                >
-                  <option value="">{pick("Select time", "เลือกเวลา")}</option>
-                  {quarterHourTimes.map((time) => (
-                    <option key={time} value={time}>{time}</option>
-                  ))}
-                </select>
+                />
               </label>
             </div>
             <input
@@ -669,7 +658,7 @@ export default function LeadDetailPage() {
               <p className="font-semibold">{isThai ? translateKnownText(a.description) : a.description}</p>
               <p className="text-xs text-black/45">
                 {isThai ? activityTypeThai[a.type] || a.type.replaceAll("_", " ") : a.type.replaceAll("_", " ")} · {a.actor?.name || pick("System", "ระบบ")} ·{" "}
-                {new Date(a.createdAt).toLocaleString()}
+                {formatGregorianDateTime(a.createdAt)}
               </p>
             </div>
           ))}

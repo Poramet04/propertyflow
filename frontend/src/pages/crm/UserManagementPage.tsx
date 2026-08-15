@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { userApi } from "../../services/api";
+import { formatGregorianDate } from "../../utils/dateTime";
 import type { Role, User } from "../../types";
 type Row = User & {
   createdAt: string;
@@ -65,7 +66,7 @@ export default function UserManagementPage() {
                   {row._count.customerLeads + row._count.assignedLeads}
                 </td>
                 <td className="p-4 text-black/45">
-                  {new Date(row.createdAt).toLocaleDateString()}
+                  {formatGregorianDate(row.createdAt)}
                 </td>
               </tr>
             ))}

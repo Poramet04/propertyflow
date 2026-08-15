@@ -1,4 +1,4 @@
-import { CalendarClock, ChevronLeft, ChevronRight, GripVertical, Mail, Phone, UserRoundCheck } from "lucide-react";
+import { CalendarClock, GripVertical, Mail, Phone, UserRoundCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -7,6 +7,7 @@ import type { Lead, LeadPriority, LeadStatus } from "../../types";
 import { money } from "../../utils/finance";
 import { LoadingState } from "../../components/UiState";
 import { useLanguage } from "../../hooks/useLanguage";
+import { formatGregorianDateTime } from "../../utils/dateTime";
 
 const stages: LeadStatus[] = [
   "NEW",
@@ -28,6 +29,7 @@ export default function PipelinePage() {
   const { token, user } = useAuth();
   const { pick } = useLanguage();
   const boardRef = useRef<HTMLDivElement>(null);
+  const topScrollRef = useRef<HTMLDivElement>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -78,8 +80,12 @@ export default function PipelinePage() {
       setUpdating((current) => current.filter((value) => value !== id));
     }
   };
-  const scrollBoard = (direction: -1 | 1) =>
-    boardRef.current?.scrollBy({ left: direction * 650, behavior: "smooth" });
+  const syncScroll = (
+    source: React.UIEvent<HTMLDivElement>,
+    target: React.RefObject<HTMLDivElement | null>,
+  ) => {
+    if (target.current) target.current.scrollLeft = source.currentTarget.scrollLeft;
+  };
   const isStale = (lead: Lead) =>
     !["CLOSED", "LOST"].includes(lead.status) &&
     new Date(lead.updatedAt).getTime() <= Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -116,23 +122,22 @@ export default function PipelinePage() {
         </p>
       )}
       <div className="relative mt-7">
-        <button
-          type="button"
-          aria-label="Scroll pipeline left"
-          onClick={() => scrollBoard(-1)}
-          className="absolute left-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-black/10 bg-white/95 p-3 text-forest shadow-lg hover:bg-mint"
+        <p className="mb-2 text-xs font-semibold text-black/45">
+          {pick("Scroll to view each sales stage", "เลื่อนเพื่อดูกระบวนการขายแต่ละสถานะ")}
+        </p>
+        <div
+          ref={topScrollRef}
+          onScroll={(event) => syncScroll(event, boardRef)}
+          className="mb-3 overflow-x-auto pb-2"
+          aria-label={pick("Pipeline stage scrollbar", "แถบเลื่อนสถานะไปป์ไลน์")}
         >
-          <ChevronLeft />
-        </button>
-        <button
-          type="button"
-          aria-label="Scroll pipeline right"
-          onClick={() => scrollBoard(1)}
-          className="absolute right-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-black/10 bg-white/95 p-3 text-forest shadow-lg hover:bg-mint"
-        >
-          <ChevronRight />
-        </button>
-      <div ref={boardRef} className="flex gap-4 overflow-x-auto px-1 pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div style={{ width: `${stages.length * 326}px`, height: "1px" }} />
+        </div>
+      <div
+        ref={boardRef}
+        onScroll={(event) => syncScroll(event, topScrollRef)}
+        className="flex gap-4 overflow-x-auto px-1 pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {stages.map((stage) => (
           <section
             onDragOver={(e) => e.preventDefault()}
@@ -164,8 +169,9 @@ export default function PipelinePage() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <Link
-                        className="font-bold hover:text-forest"
+                        className="inline-flex rounded-xl border border-forest/10 bg-mint/70 px-3 py-2 font-bold text-forest shadow-sm transition hover:bg-forest hover:text-white focus-visible:ring-2 focus-visible:ring-forest"
                         to={`/crm/leads/${l.id}`}
+                        title={pick("Open lead details", "เปิดรายละเอียดลีด")}
                       >
                         {l.customer.name}
                       </Link>
@@ -206,7 +212,7 @@ export default function PipelinePage() {
                         className={`mt-2 flex items-center gap-1 text-xs ${new Date(l.nextFollowUpAt) < new Date() ? "font-bold text-red-600" : "text-black/50"}`}
                       >
                         <CalendarClock size={13} />
-                        {new Date(l.nextFollowUpAt).toLocaleString()}
+                        {formatGregorianDateTime(l.nextFollowUpAt)}
                       </p>
                     )}
                     <p className="mt-2 flex items-center gap-1 text-xs text-black/45">
@@ -219,9 +225,9 @@ export default function PipelinePage() {
                     </p>
                     <p className="mt-3 text-[11px] text-black/35">
                       {pick("Latest activity", "กิจกรรมล่าสุด")}:{" "}
-                      {new Date(
+                      {formatGregorianDateTime(
                         l.activities?.[0]?.createdAt || l.updatedAt,
-                      ).toLocaleString()}
+                      )}
                     </p>
                     {updating.includes(l.id) && (
                       <p className="mt-2 text-xs font-semibold text-forest">

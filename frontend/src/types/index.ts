@@ -193,6 +193,7 @@ export interface Lead {
   loanApplications: LoanApplication[];
 }
 export interface DashboardData {
+  period: string;
   kpis: {
     totalProperties: number;
     newLeads: number;

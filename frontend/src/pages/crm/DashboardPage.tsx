@@ -19,6 +19,12 @@ import { money } from "../../utils/finance";
 import { ErrorState, LoadingState } from "../../components/UiState";
 import { useLanguage } from "../../hooks/useLanguage";
 import { translateKnownText } from "../../i18n/translations";
+import { formatGregorianDateTime } from "../../utils/dateTime";
+
+const currentMonth = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+};
 export default function DashboardPage() {
   const { token, user } = useAuth(),
     { isThai, pick } = useLanguage(),
@@ -26,13 +32,15 @@ export default function DashboardPage() {
     [leads, setLeads] = useState<LeadAnalytics | null>(null),
     [sales, setSales] = useState<SalesAnalytics | null>(null),
     [properties, setProperties] = useState<PropertyAnalytics | null>(null),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [month, setMonth] = useState(currentMonth);
   useEffect(() => {
-    if (token)
+    if (token) {
+      setError("");
       Promise.all([
-        dashboardApi.get(token),
-        analyticsApi.leads(token),
-        analyticsApi.sales(token),
+        dashboardApi.get(token, month),
+        analyticsApi.leads(token, month),
+        analyticsApi.sales(token, month),
         analyticsApi.properties(token),
       ])
         .then(([d, l, s, p]) => {
@@ -42,7 +50,8 @@ export default function DashboardPage() {
           setProperties(p);
         })
         .catch((e) => setError(e.message));
-  }, [token]);
+    }
+  }, [token, month]);
   if (error) return <ErrorState message={error} />;
   if (!data || !leads || !sales || !properties)
     return <LoadingState label={pick("Loading live CRM dashboard...", "กำลังโหลดแดชบอร์ด CRM...")} />;
@@ -72,11 +81,25 @@ export default function DashboardPage() {
   return (
     <>
       <p className="eyebrow">{pick("Live CRM analytics", "การวิเคราะห์ CRM แบบเรียลไทม์")}</p>
-      <h1 className="mt-2 text-4xl font-bold">
-        {user?.role === "ADMIN"
-          ? pick("Admin dashboard", "แดชบอร์ดผู้ดูแลระบบ")
-          : pick("Agent dashboard", "แดชบอร์ดเจ้าหน้าที่ขาย")}
-      </h1>
+      <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
+        <h1 className="text-4xl font-bold">
+          {user?.role === "ADMIN"
+            ? pick("Admin dashboard", "แดชบอร์ดผู้ดูแลระบบ")
+            : pick("Agent dashboard", "แดชบอร์ดเจ้าหน้าที่ขาย")}
+        </h1>
+        <label className="min-w-52 text-sm font-semibold text-black/60">
+          {pick("Dashboard month", "ข้อมูลประจำเดือน")}
+          <input
+            className="mt-1"
+            type="month"
+            lang="en-GB"
+            min="2020-01"
+            max="2100-12"
+            value={month}
+            onChange={(event) => event.target.value && setMonth(event.target.value)}
+          />
+        </label>
+      </div>
       <section className="mt-7 rounded-3xl border border-forest/15 bg-mint/70 p-6">
         <h2 className="text-xl font-bold">
           {pick("How to add follow-ups and activities", "วิธีเพิ่มการติดตามและกิจกรรม")}
@@ -90,7 +113,7 @@ export default function DashboardPage() {
           {pick("Open Pipeline", "เปิดไปป์ไลน์")}
         </Link>
       </section>
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
         {cards.map(([label, value, Icon]) => (
           <div className="panel flex items-center gap-4" key={label}>
             <span className="rounded-2xl bg-mint p-3 text-forest">
@@ -181,7 +204,7 @@ export default function DashboardPage() {
                   </p>
                   <p className="text-sm text-black/55">{f.property}</p>
                   <p className="text-xs text-black/40">
-                    {new Date(f.nextFollowUpAt).toLocaleString()}
+                    {formatGregorianDateTime(f.nextFollowUpAt)}
                   </p>
                 </Link>
               ))}
@@ -210,7 +233,7 @@ export default function DashboardPage() {
                 <p className="font-semibold">{isThai ? translateKnownText(a.description) : a.description}</p>
                 <p className="text-xs text-black/45">
                   {a.lead.customer.name} · {a.actor?.name || pick("System", "ระบบ")} ·{" "}
-                  {new Date(a.createdAt).toLocaleString()}
+                  {formatGregorianDateTime(a.createdAt)}
                 </p>
               </Link>
             ))}

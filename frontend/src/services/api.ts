@@ -207,8 +207,8 @@ export const dealApi = {
     }),
 };
 export const dashboardApi = {
-  get: (token: string) =>
-    request<DashboardData>("/dashboard/agent", { headers: auth(token) }),
+  get: (token: string, month: string) =>
+    request<DashboardData>(`/dashboard/agent?month=${encodeURIComponent(month)}`, { headers: auth(token) }),
 };
 export const userApi = {
   list: (token: string) =>
@@ -292,10 +292,10 @@ export const customerDashboardApi = {
     request<CustomerDashboard>("/dashboard/customer", { headers: auth(token) }),
 };
 export const analyticsApi = {
-  leads: (token: string) =>
-    request<LeadAnalytics>("/analytics/leads", { headers: auth(token) }),
-  sales: (token: string) =>
-    request<SalesAnalytics>("/analytics/sales", { headers: auth(token) }),
+  leads: (token: string, month: string) =>
+    request<LeadAnalytics>(`/analytics/leads?month=${encodeURIComponent(month)}`, { headers: auth(token) }),
+  sales: (token: string, month: string) =>
+    request<SalesAnalytics>(`/analytics/sales?month=${encodeURIComponent(month)}`, { headers: auth(token) }),
   properties: (token: string) =>
     request<PropertyAnalytics>("/analytics/properties", {
       headers: auth(token),

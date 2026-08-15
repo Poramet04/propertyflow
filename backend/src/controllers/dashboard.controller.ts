@@ -6,17 +6,26 @@ import {
 } from "@prisma/client";
 import type { RequestHandler } from "express";
 import { prisma } from "../config/prisma.js";
+import { monthRange } from "../utils/month.js";
 
 export const dashboard: RequestHandler = async (req, res) => {
   const isAdmin = req.user!.role === Role.ADMIN;
   const leadWhere = isAdmin ? {} : { assignedAgentId: req.user!.id };
   const dealWhere = isAdmin ? {} : { agentId: req.user!.id };
+  const period = monthRange(req.query.month);
+  const leadPeriodWhere = {
+    ...leadWhere,
+    createdAt: { gte: period.start, lt: period.end },
+  };
+  const dealPeriodWhere = {
+    ...dealWhere,
+    closedAt: { gte: period.start, lt: period.end },
+  };
   const now = new Date();
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const month = new Date(now.getFullYear(), now.getMonth(), 1);
   const activeStatuses = [
     LeadStatus.NEW,
     LeadStatus.CONTACTED,
@@ -52,26 +61,26 @@ export const dashboard: RequestHandler = async (req, res) => {
     prisma.property.count({ where: { status: PropertyStatus.SOLD } }),
     prisma.user.count({ where: { role: Role.CUSTOMER } }),
     prisma.user.count({ where: { role: Role.AGENT } }),
-    prisma.lead.count({ where: leadWhere }),
-    prisma.lead.count({ where: { ...leadWhere, status: LeadStatus.NEW } }),
+    prisma.lead.count({ where: leadPeriodWhere }),
+    prisma.lead.count({ where: { ...leadPeriodWhere, status: LeadStatus.NEW } }),
     prisma.lead.count({
-      where: { ...leadWhere, status: { in: activeStatuses } },
+      where: { ...leadPeriodWhere, status: { in: activeStatuses } },
     }),
-    prisma.lead.count({ where: { ...leadWhere, status: LeadStatus.LOST } }),
+    prisma.lead.count({ where: { ...leadPeriodWhere, status: LeadStatus.LOST } }),
     prisma.appointment.count({
       where: {
         lead: leadWhere,
         status: AppointmentStatus.SCHEDULED,
-        appointmentDate: { gte: now },
+        appointmentDate: { gte: period.start, lt: period.end },
       },
     }),
-    prisma.deal.count({ where: dealWhere }),
+    prisma.deal.count({ where: dealPeriodWhere }),
     prisma.deal.aggregate({
-      where: { ...dealWhere, closedAt: { gte: month } },
+      where: dealPeriodWhere,
       _sum: { salePrice: true, commissionAmount: true },
     }),
     prisma.lead.findMany({
-      where: leadWhere,
+      where: leadPeriodWhere,
       include: {
         customer: { select: { name: true } },
         property: { select: { title: true } },
@@ -83,7 +92,7 @@ export const dashboard: RequestHandler = async (req, res) => {
       where: {
         lead: leadWhere,
         status: AppointmentStatus.SCHEDULED,
-        appointmentDate: { gte: now },
+        appointmentDate: { gte: period.start, lt: period.end },
       },
       include: {
         lead: {
@@ -97,7 +106,7 @@ export const dashboard: RequestHandler = async (req, res) => {
       take: 6,
     }),
     prisma.deal.findMany({
-      where: dealWhere,
+      where: dealPeriodWhere,
       include: {
         customer: { select: { name: true } },
         property: { select: { title: true } },
@@ -108,7 +117,7 @@ export const dashboard: RequestHandler = async (req, res) => {
     prisma.lead.findMany({
       where: {
         ...leadWhere,
-        nextFollowUpAt: { gte: today, lt: tomorrow },
+        nextFollowUpAt: { gte: now, lt: tomorrow },
         followUpCompletedAt: null,
       },
       include: {
@@ -143,7 +152,10 @@ export const dashboard: RequestHandler = async (req, res) => {
       take: 8,
     }),
     prisma.leadActivity.findMany({
-      where: isAdmin ? {} : { lead: leadWhere },
+      where: {
+        ...(isAdmin ? {} : { lead: leadWhere }),
+        createdAt: { gte: period.start, lt: period.end },
+      },
       include: {
         actor: { select: { name: true, role: true } },
         lead: {
@@ -166,6 +178,7 @@ export const dashboard: RequestHandler = async (req, res) => {
     status: l.status,
   });
   res.json({
+    period: period.month,
     kpis: {
       totalProperties,
       newLeads,

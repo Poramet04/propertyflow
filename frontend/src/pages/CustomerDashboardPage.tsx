@@ -7,6 +7,7 @@ import { useAuth } from "../hooks/useAuth";
 import { customerDashboardApi } from "../services/api";
 import type { CustomerDashboard } from "../types";
 import { money } from "../utils/finance";
+import { formatGregorianDateTime } from "../utils/dateTime";
 export default function CustomerDashboardPage() {
   const { token } = useAuth(),
     [data, setData] = useState<CustomerDashboard | null>(null),
@@ -94,7 +95,7 @@ export default function CustomerDashboardPage() {
           <h2 className="text-xl font-bold">Upcoming appointments</h2>
           {data.upcomingAppointments.map((a) => (
             <p className="mt-3" key={a.id}>
-              {a.property} · {new Date(a.appointmentDate).toLocaleString()}
+              {a.property} · {formatGregorianDateTime(a.appointmentDate)}
             </p>
           ))}
         </div>

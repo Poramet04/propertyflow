@@ -4,6 +4,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { propertyApi } from "../../services/api";
 import type { Property, PropertyType } from "../../types";
 import { money } from "../../utils/finance";
+import { formatGregorianDate } from "../../utils/dateTime";
 const blank = {
   title: "",
   slug: "",
@@ -309,7 +310,7 @@ export default function PropertyManagementPage() {
                 </td>
                 <td className="p-4 text-sm text-black/45">
                   {p.createdAt
-                    ? new Date(p.createdAt).toLocaleDateString()
+                    ? formatGregorianDate(p.createdAt)
                     : "—"}
                 </td>
                 <td className="p-4">

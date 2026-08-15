@@ -7,6 +7,7 @@ import type { Lead } from "../types";
 import { money } from "../utils/finance";
 import { EmptyState, ErrorState, LoadingState } from "../components/UiState";
 import { useLanguage } from "../hooks/useLanguage";
+import { formatGregorianDate, formatGregorianDateTime } from "../utils/dateTime";
 export default function MyLeadsPage() {
   const { token } = useAuth(),
     { pick } = useLanguage(),
@@ -61,7 +62,7 @@ export default function MyLeadsPage() {
                   {l.status}
                 </span>
                 <span className="text-sm text-black/40">
-                  {new Date(l.createdAt).toLocaleDateString()}
+                  {formatGregorianDate(l.createdAt)}
                 </span>
               </div>
               <h2 className="mt-3 text-2xl font-bold">{l.property.title}</h2>
@@ -77,7 +78,7 @@ export default function MyLeadsPage() {
                 <p className="mt-2 text-sm text-black/55">
                   <Calendar className="mr-1 inline" size={16} />
                   Next viewing:{" "}
-                  {new Date(l.appointments[0].appointmentDate).toLocaleString()}
+                  {formatGregorianDateTime(l.appointments[0].appointmentDate)}
                 </p>
               )}
             </div>
