@@ -24,6 +24,23 @@ test("zero interest divides principal evenly", () => {
   assert.equal(result.monthlyPayment, 10_000);
   assert.equal(result.totalInterest, 0);
 });
+test("borrowing below the maximum produces a lower repayment", () => {
+  const maximum = mortgage({
+    propertyPrice: 2_000_000,
+    downPayment: 0,
+    interestRate: 5.5,
+    loanYears: 30,
+  });
+  const partial = mortgage({
+    propertyPrice: 1_200_000,
+    downPayment: 0,
+    interestRate: 5.5,
+    loanYears: 30,
+  });
+  assert.equal(partial.loanAmount, 1_200_000);
+  assert.ok(partial.monthlyPayment < maximum.monthlyPayment);
+  assert.ok(partial.totalPayments < maximum.totalPayments);
+});
 test("affordability reverses the amortization formula", () => {
   const result = affordability({
     monthlyIncome: 45_000,

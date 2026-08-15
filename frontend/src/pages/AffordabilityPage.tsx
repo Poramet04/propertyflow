@@ -5,7 +5,11 @@ import NumberField from "../components/NumberField";
 import { useAuth } from "../hooks/useAuth";
 import { useLanguage } from "../hooks/useLanguage";
 import { calculatorApi } from "../services/api";
-import type { AffordabilityInput, AffordabilityResult } from "../types";
+import type {
+  AffordabilityInput,
+  AffordabilityResult,
+  MortgageResult,
+} from "../types";
 import { money } from "../utils/finance";
 
 export default function AffordabilityPage() {
@@ -24,6 +28,10 @@ export default function AffordabilityPage() {
     safetyMax: 92,
   });
   const [result, setResult] = useState<AffordabilityResult | null>(null);
+  const [requestedLoan, setRequestedLoan] = useState(0);
+  const [loanResult, setLoanResult] = useState<MortgageResult | null>(null);
+  const [loanError, setLoanError] = useState("");
+  const [loanBusy, setLoanBusy] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const noMortgageCapacity =
@@ -35,11 +43,14 @@ export default function AffordabilityPage() {
     setBusy(true);
     setError("");
     try {
-      setResult(
+      const calculated =
         save && token
           ? await calculatorApi.saveAffordability(token, form)
-          : await calculatorApi.affordability(form),
-      );
+          : await calculatorApi.affordability(form);
+      setResult(calculated);
+      setRequestedLoan(Math.round(calculated.maxLoanAmount));
+      setLoanResult(null);
+      setLoanError("");
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -48,6 +59,48 @@ export default function AffordabilityPage() {
       );
     } finally {
       setBusy(false);
+    }
+  };
+  const calculateRequestedLoan = async () => {
+    if (!result) return;
+    setLoanError("");
+    setLoanResult(null);
+    if (requestedLoan <= 0) {
+      setLoanError(
+        pick(
+          "Enter a loan amount greater than zero.",
+          "กรุณากรอกยอดกู้ที่มากกว่า 0 บาท",
+        ),
+      );
+      return;
+    }
+    if (requestedLoan > result.maxLoanAmount) {
+      setLoanError(
+        pick(
+          "The requested loan is above your estimated maximum. Reduce the amount or recalculate your affordability.",
+          "ยอดกู้ที่ต้องการสูงกว่าวงเงินสูงสุดโดยประมาณ กรุณาลดยอดกู้หรือคำนวณความสามารถในการซื้อใหม่",
+        ),
+      );
+      return;
+    }
+    setLoanBusy(true);
+    try {
+      setLoanResult(
+        await calculatorApi.mortgage({
+          propertyPrice: requestedLoan,
+          downPayment: 0,
+          interestRate: form.interestRate,
+          loanYears: form.loanYears,
+        }),
+      );
+    } catch (caught) {
+      setLoanError(
+        caught instanceof Error
+          ? caught.message
+          : pick("Could not calculate repayment", "ไม่สามารถคำนวณค่างวดได้"),
+      );
+    } finally {
+      setLoanBusy(false);
     }
   };
 
@@ -166,6 +219,74 @@ export default function AffordabilityPage() {
               {!noMortgageCapacity && <><div className="mt-7 rounded-2xl bg-white/10 p-4">
                 <p className="text-sm text-white/60">{pick("Recommended safer budget", "งบประมาณที่ปลอดภัยกว่า")}</p>
                 <p className="mt-1 text-xl font-bold">{money(result.safeBudgetMin)} – {money(result.safeBudgetMax)}</p>
+              </div>
+              <div className="mt-7 rounded-2xl border border-white/15 bg-white/10 p-5">
+                <h3 className="text-lg font-bold">
+                  {pick(
+                    "Borrow less than the maximum",
+                    "คำนวณกรณีกู้ไม่เต็มวงเงิน",
+                  )}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-white/65">
+                  {pick(
+                    "Enter the amount you actually want to borrow. The repayment uses the same loan term and estimated interest rate entered on this page.",
+                    "กรอกยอดที่ต้องการกู้จริง ระบบจะคำนวณค่างวดโดยใช้ระยะเวลากู้และอัตราดอกเบี้ยโดยประมาณที่กรอกไว้ในหน้านี้",
+                  )}
+                </p>
+                <div className="mt-4 text-ink">
+                  <NumberField
+                    label={pick("Actual loan amount", "วงเงินที่ต้องการกู้จริง")}
+                    value={requestedLoan}
+                    onChange={setRequestedLoan}
+                    suffix={pick("THB", "บาท")}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-white/55">
+                  {pick("Estimated maximum", "วงเงินสูงสุดโดยประมาณ")}: {money(result.maxLoanAmount)}
+                </p>
+                <button
+                  type="button"
+                  disabled={loanBusy}
+                  className="mt-4 w-full rounded-xl bg-white px-4 py-3 font-bold text-forest transition hover:bg-mint disabled:opacity-60"
+                  onClick={calculateRequestedLoan}
+                >
+                  {loanBusy
+                    ? pick("Calculating...", "กำลังคำนวณ...")
+                    : pick("Calculate repayment", "คำนวณค่างวด")}
+                </button>
+                {loanError && (
+                  <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm leading-5 text-red-800">
+                    {loanError}
+                  </p>
+                )}
+                {loanResult && (
+                  <div className="mt-5 border-t border-white/15 pt-5">
+                    <p className="text-sm text-white/60">
+                      {pick("Estimated monthly repayment", "ค่างวดต่อเดือนโดยประมาณ")}
+                    </p>
+                    <p className="mt-1 text-3xl font-extrabold">
+                      {money(loanResult.monthlyPayment)}
+                    </p>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <p className="text-xs text-white/55">{pick("Total repayment", "ยอดชำระรวม")}</p>
+                        <p className="mt-1 font-bold">{money(loanResult.totalPayments)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-white/55">{pick("Total estimated interest", "ดอกเบี้ยรวมโดยประมาณ")}</p>
+                        <p className="mt-1 font-bold">{money(loanResult.totalInterest)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-white/55">{pick("Below maximum by", "ต่ำกว่าวงเงินสูงสุด")}</p>
+                        <p className="mt-1 font-bold">{money(result.maxLoanAmount - loanResult.loanAmount)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-white/55">{pick("Property budget with your down payment", "งบซื้อบ้านเมื่อรวมเงินดาวน์")}</p>
+                        <p className="mt-1 font-bold">{money(loanResult.loanAmount + form.downPayment)}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               <Link className="mt-5 inline-block font-bold underline" to="/recommendations">
                 {pick("View smart recommendations →", "ดูรายการแนะนำ →")}
