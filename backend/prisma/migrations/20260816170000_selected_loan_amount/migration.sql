@@ -1,2 +1,2 @@
 ALTER TABLE "LoanProfile"
-ADD COLUMN "selectedLoanAmount" DECIMAL(14,2);
+ADD COLUMN IF NOT EXISTS "selectedLoanAmount" DECIMAL(14,2);
