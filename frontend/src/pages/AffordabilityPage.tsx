@@ -1,14 +1,15 @@
 import { Info, Wallet } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import NumberField from "../components/NumberField";
 import { useAuth } from "../hooks/useAuth";
 import { useLanguage } from "../hooks/useLanguage";
-import { calculatorApi } from "../services/api";
+import { calculatorApi, preferenceApi } from "../services/api";
 import type {
   AffordabilityInput,
   AffordabilityResult,
   MortgageResult,
+  PropertyPreference,
 } from "../types";
 import { money } from "../utils/finance";
 
@@ -32,21 +33,74 @@ export default function AffordabilityPage() {
   const [loanResult, setLoanResult] = useState<MortgageResult | null>(null);
   const [loanError, setLoanError] = useState("");
   const [loanBusy, setLoanBusy] = useState(false);
+  const [preference, setPreference] = useState<PropertyPreference>({
+    preferredLocations: [],
+    propertyTypes: [],
+    minBedrooms: 0,
+    minBathrooms: 0,
+    minArea: null,
+    maxArea: null,
+    maxMonthlyPayment: null,
+    maxPropertyPrice: null,
+  });
+  const [customerBudget, setCustomerBudget] = useState("");
+  const [saveMessage, setSaveMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!token || user?.role !== "CUSTOMER") return;
+    preferenceApi
+      .get(token)
+      .then((saved) => {
+        if (!saved) return;
+        setPreference(saved);
+        if (saved.maxPropertyPrice != null)
+          setCustomerBudget(String(saved.maxPropertyPrice));
+      })
+      .catch(() => undefined);
+  }, [token, user?.role]);
   const noMortgageCapacity =
     result !== null &&
     (result.maxMortgagePayment <= 0 || result.maxLoanAmount <= 0);
   const set = (key: keyof AffordabilityInput, value: number) =>
     setForm((current) => ({ ...current, [key]: value }));
   const calculate = async (save = false) => {
+    const selectedBudget = Number(customerBudget);
+    if (
+      save &&
+      user?.role === "CUSTOMER" &&
+      (!Number.isFinite(selectedBudget) || selectedBudget <= 0)
+    ) {
+      setError(
+        pick(
+          "Enter the property budget you want sales agents to see.",
+          "กรุณากรอกงบซื้ออสังหาริมทรัพย์ที่ต้องการให้เจ้าหน้าที่ขายเห็น",
+        ),
+      );
+      setSaveMessage("");
+      return;
+    }
     setBusy(true);
     setError("");
+    setSaveMessage("");
     try {
       const calculated =
         save && token
           ? await calculatorApi.saveAffordability(token, form)
           : await calculatorApi.affordability(form);
+      if (save && token && user?.role === "CUSTOMER") {
+        const savedPreference = await preferenceApi.put(token, {
+          ...preference,
+          maxPropertyPrice: selectedBudget,
+        });
+        setPreference(savedPreference);
+        setSaveMessage(
+          pick(
+            `Saved. Your customer budget is ${money(selectedBudget)} and is now used on your active enquiries.`,
+            `บันทึกแล้ว งบที่คุณกำหนดคือ ${money(selectedBudget)} และนำไปใช้กับรายการที่สนใจซึ่งกำลังดำเนินการแล้ว`,
+          ),
+        );
+      }
       setResult(calculated);
       setRequestedLoan(Math.round(calculated.maxLoanAmount));
       setLoanResult(null);
@@ -176,17 +230,70 @@ export default function AffordabilityPage() {
               )}
             </p>
           </div>
+          {user?.role === "CUSTOMER" && (
+            <div className="mt-6 rounded-2xl border border-forest/15 bg-mint/45 p-4">
+              <label className="block">
+                <span className="form-label">
+                  {pick(
+                    "My actual property budget",
+                    "งบซื้ออสังหาริมทรัพย์ที่ฉันกำหนดเอง",
+                  )}
+                </span>
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={customerBudget}
+                    onChange={(event) =>
+                      setCustomerBudget(
+                        event.target.value
+                          .replace(/[^\d]/g, "")
+                          .replace(/^0+(?=\d)/, ""),
+                      )
+                    }
+                    className="pr-16 tabular-nums"
+                    placeholder={pick("Example: 2000000", "ตัวอย่าง: 2000000")}
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-black/40">
+                    {pick("THB", "บาท")}
+                  </span>
+                </div>
+              </label>
+              <p className="mt-2 text-xs leading-5 text-black/50">
+                {pick(
+                  "This is the budget you choose—not the system-calculated maximum. It will appear on your active leads and help sales agents recommend suitable properties.",
+                  "นี่คืองบที่คุณเลือกเอง ไม่ใช่งบสูงสุดที่ระบบคำนวณ ตัวเลขนี้จะแสดงในลีดที่กำลังดำเนินการเพื่อให้เจ้าหน้าที่ขายแนะนำอสังหาริมทรัพย์ที่เหมาะสม",
+                )}
+              </p>
+              {result && Number(customerBudget) > result.maxPropertyPrice && (
+                <p className="mt-2 rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-800">
+                  {pick(
+                    "Your chosen budget is above the current affordability estimate. You can still save it, but review the funding difference carefully.",
+                    "งบที่คุณกำหนดสูงกว่างบประมาณที่ระบบประเมิน คุณยังบันทึกได้ แต่ควรตรวจสอบเงินส่วนต่างอย่างรอบคอบ",
+                  )}
+                </p>
+              )}
+            </div>
+          )}
           <div className="mt-6 flex flex-wrap gap-3">
             <button disabled={busy} className="btn-primary" onClick={() => calculate(false)}>
               {pick("Calculate budget", "คำนวณงบประมาณ")}
             </button>
             {user?.role === "CUSTOMER" && (
               <button disabled={busy} className="btn-light" onClick={() => calculate(true)}>
-                {pick("Save to my profile", "บันทึกในโปรไฟล์")}
+                {pick(
+                  "Save profile and my budget",
+                  "บันทึกข้อมูลและงบของฉัน",
+                )}
               </button>
             )}
           </div>
           {error && <p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}
+          {saveMessage && (
+            <p role="status" className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm leading-6 text-emerald-800">
+              {saveMessage}
+            </p>
+          )}
         </div>
         <div className="rounded-3xl bg-forest p-7 text-white shadow-soft">
           <Wallet size={30} />

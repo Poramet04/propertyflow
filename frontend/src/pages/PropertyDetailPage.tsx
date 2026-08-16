@@ -22,7 +22,6 @@ import {
   recommendationApi,
 } from "../services/api";
 import type {
-  LoanProfile,
   PreQualificationResult,
   Property,
   Recommendation,
@@ -44,7 +43,6 @@ export default function PropertyDetailPage() {
   const [property, setProperty] = useState<Property | null>(null);
   const [imageIndex, setImageIndex] = useState(0);
   const [match, setMatch] = useState<Recommendation | null>(null);
-  const [profile, setProfile] = useState<LoanProfile | null>(null);
   const [fit, setFit] = useState<PreQualificationResult | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -64,7 +62,6 @@ export default function PropertyDetailPage() {
         recommendationApi.get(token),
         calculatorApi.financialFit(token, property.id).catch(() => null),
       ]).then(([recommendations, financialFit]) => {
-        setProfile(recommendations.profile);
         setMatch(
           recommendations.recommendations.find(
             (item) => item.property.id === property.id,
@@ -135,7 +132,6 @@ export default function PropertyDetailPage() {
     try {
       const lead = await leadApi.create(token, {
         propertyId: property!.id,
-        budget: profile?.estimatedPropertyBudget,
       });
       setMessage(
         pick(
