@@ -43,7 +43,7 @@ export default function AffordabilityPage() {
     maxMonthlyPayment: null,
     maxPropertyPrice: null,
   });
-  const [customerBudget, setCustomerBudget] = useState("");
+  const [preferenceReady, setPreferenceReady] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -52,55 +52,22 @@ export default function AffordabilityPage() {
     preferenceApi
       .get(token)
       .then((saved) => {
-        if (!saved) return;
-        setPreference(saved);
-        if (saved.maxPropertyPrice != null)
-          setCustomerBudget(String(saved.maxPropertyPrice));
+        if (saved) setPreference(saved);
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => setPreferenceReady(true));
   }, [token, user?.role]);
   const noMortgageCapacity =
     result !== null &&
     (result.maxMortgagePayment <= 0 || result.maxLoanAmount <= 0);
   const set = (key: keyof AffordabilityInput, value: number) =>
     setForm((current) => ({ ...current, [key]: value }));
-  const calculate = async (save = false) => {
-    const selectedBudget = Number(customerBudget);
-    if (
-      save &&
-      user?.role === "CUSTOMER" &&
-      (!Number.isFinite(selectedBudget) || selectedBudget <= 0)
-    ) {
-      setError(
-        pick(
-          "Enter the property budget you want sales agents to see.",
-          "กรุณากรอกงบซื้ออสังหาริมทรัพย์ที่ต้องการให้เจ้าหน้าที่ขายเห็น",
-        ),
-      );
-      setSaveMessage("");
-      return;
-    }
+  const calculate = async () => {
     setBusy(true);
     setError("");
     setSaveMessage("");
     try {
-      const calculated =
-        save && token
-          ? await calculatorApi.saveAffordability(token, form)
-          : await calculatorApi.affordability(form);
-      if (save && token && user?.role === "CUSTOMER") {
-        const savedPreference = await preferenceApi.put(token, {
-          ...preference,
-          maxPropertyPrice: selectedBudget,
-        });
-        setPreference(savedPreference);
-        setSaveMessage(
-          pick(
-            `Saved. Your customer budget is ${money(selectedBudget)} and is now used on your active enquiries.`,
-            `บันทึกแล้ว งบที่คุณกำหนดคือ ${money(selectedBudget)} และนำไปใช้กับรายการที่สนใจซึ่งกำลังดำเนินการแล้ว`,
-          ),
-        );
-      }
+      const calculated = await calculatorApi.affordability(form);
       setResult(calculated);
       setRequestedLoan(Math.round(calculated.maxLoanAmount));
       setLoanResult(null);
@@ -110,6 +77,65 @@ export default function AffordabilityPage() {
         caught instanceof Error
           ? caught.message
           : pick("Could not calculate", "ไม่สามารถคำนวณได้"),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+  const saveSelectedPlan = async () => {
+    if (!token || user?.role !== "CUSTOMER") return;
+    setError("");
+    setSaveMessage("");
+    if (!result || requestedLoan <= 0) {
+      setError(
+        pick(
+          "Calculate your affordability, then enter the amount you actually want to borrow before saving.",
+          "กรุณาคำนวณงบประมาณก่อน แล้วกรอกวงเงินที่ต้องการกู้จริงจึงจะบันทึกได้",
+        ),
+      );
+      return;
+    }
+    if (requestedLoan > result.maxLoanAmount) {
+      setError(
+        pick(
+          "The selected loan is above your estimated maximum. Reduce it before saving.",
+          "วงเงินที่เลือกสูงกว่าวงเงินสูงสุดโดยประมาณ กรุณาลดยอดก่อนบันทึก",
+        ),
+      );
+      return;
+    }
+    if (!preferenceReady) {
+      setError(
+        pick(
+          "Your saved preferences are still loading. Please try again in a moment.",
+          "ระบบกำลังโหลดความต้องการที่บันทึกไว้ กรุณาลองอีกครั้งในอีกสักครู่",
+        ),
+      );
+      return;
+    }
+    const selectedPropertyBudget = requestedLoan + form.downPayment;
+    setBusy(true);
+    try {
+      const [savedProfile, savedPreference] = await Promise.all([
+        calculatorApi.saveAffordability(token, form),
+        preferenceApi.put(token, {
+          ...preference,
+          maxPropertyPrice: selectedPropertyBudget,
+        }),
+      ]);
+      setResult(savedProfile);
+      setPreference(savedPreference);
+      setSaveMessage(
+        pick(
+          `Saved. Your selected loan is ${money(requestedLoan)} and your property budget is ${money(selectedPropertyBudget)} including the down payment. Active enquiries have been updated.`,
+          `บันทึกแล้ว วงเงินกู้ที่เลือกคือ ${money(requestedLoan)} และงบซื้ออสังหาริมทรัพย์รวมเงินดาวน์คือ ${money(selectedPropertyBudget)} ลีดที่กำลังดำเนินการได้รับการอัปเดตแล้ว`,
+        ),
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : pick("Could not save your plan", "ไม่สามารถบันทึกแผนของคุณได้"),
       );
     } finally {
       setBusy(false);
@@ -230,60 +256,15 @@ export default function AffordabilityPage() {
               )}
             </p>
           </div>
-          {user?.role === "CUSTOMER" && (
-            <div className="mt-6 rounded-2xl border border-forest/15 bg-mint/45 p-4">
-              <label className="block">
-                <span className="form-label">
-                  {pick(
-                    "My actual property budget",
-                    "งบซื้ออสังหาริมทรัพย์ที่ฉันกำหนดเอง",
-                  )}
-                </span>
-                <div className="relative">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={customerBudget}
-                    onChange={(event) =>
-                      setCustomerBudget(
-                        event.target.value
-                          .replace(/[^\d]/g, "")
-                          .replace(/^0+(?=\d)/, ""),
-                      )
-                    }
-                    className="pr-16 tabular-nums"
-                    placeholder={pick("Example: 2000000", "ตัวอย่าง: 2000000")}
-                  />
-                  <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-black/40">
-                    {pick("THB", "บาท")}
-                  </span>
-                </div>
-              </label>
-              <p className="mt-2 text-xs leading-5 text-black/50">
-                {pick(
-                  "This is the budget you choose—not the system-calculated maximum. It will appear on your active leads and help sales agents recommend suitable properties.",
-                  "นี่คืองบที่คุณเลือกเอง ไม่ใช่งบสูงสุดที่ระบบคำนวณ ตัวเลขนี้จะแสดงในลีดที่กำลังดำเนินการเพื่อให้เจ้าหน้าที่ขายแนะนำอสังหาริมทรัพย์ที่เหมาะสม",
-                )}
-              </p>
-              {result && Number(customerBudget) > result.maxPropertyPrice && (
-                <p className="mt-2 rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-800">
-                  {pick(
-                    "Your chosen budget is above the current affordability estimate. You can still save it, but review the funding difference carefully.",
-                    "งบที่คุณกำหนดสูงกว่างบประมาณที่ระบบประเมิน คุณยังบันทึกได้ แต่ควรตรวจสอบเงินส่วนต่างอย่างรอบคอบ",
-                  )}
-                </p>
-              )}
-            </div>
-          )}
           <div className="mt-6 flex flex-wrap gap-3">
-            <button disabled={busy} className="btn-primary" onClick={() => calculate(false)}>
+            <button disabled={busy} className="btn-primary" onClick={calculate}>
               {pick("Calculate budget", "คำนวณงบประมาณ")}
             </button>
             {user?.role === "CUSTOMER" && (
-              <button disabled={busy} className="btn-light" onClick={() => calculate(true)}>
+              <button disabled={busy} className="btn-light" onClick={saveSelectedPlan}>
                 {pick(
-                  "Save profile and my budget",
-                  "บันทึกข้อมูลและงบของฉัน",
+                  "Save profile and selected loan plan",
+                  "บันทึกโปรไฟล์และแผนกู้ที่เลือก",
                 )}
               </button>
             )}
@@ -364,6 +345,12 @@ export default function AffordabilityPage() {
                 </div>
                 <p className="mt-2 text-xs text-white/55">
                   {pick("Estimated maximum", "วงเงินสูงสุดโดยประมาณ")}: {money(result.maxLoanAmount)}
+                </p>
+                <p className="mt-2 text-xs leading-5 text-white/60">
+                  {pick(
+                    `When saved, your lead budget will be this loan plus your ${money(form.downPayment)} down payment.`,
+                    `เมื่อบันทึก งบที่แสดงในลีดจะเท่ากับวงเงินกู้นี้รวมกับเงินดาวน์ ${money(form.downPayment)}`,
+                  )}
                 </p>
                 <button
                   type="button"
