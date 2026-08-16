@@ -7,14 +7,18 @@ import { prisma } from "../config/prisma.js";
 
 const password = z
   .string()
-  .min(8)
-  .max(100)
+  .min(8, "Password must contain at least 8 characters")
+  .max(100, "Password must contain no more than 100 characters")
   .regex(/[a-z]/, "Password must include a lowercase letter")
   .regex(/[A-Z]/, "Password must include an uppercase letter")
   .regex(/[0-9]/, "Password must include a number");
 const registerSchema = z.object({
-  name: z.string().trim().min(2).max(100),
-  email: z.string().trim().email(),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Full name must contain at least 2 characters")
+    .max(100, "Full name must contain no more than 100 characters"),
+  email: z.string().trim().email("Enter a valid email address"),
   phone: z
     .string()
     .trim()
