@@ -70,6 +70,7 @@ export interface AffordabilityInput {
   maxDti: number;
   safetyMin: number;
   safetyMax: number;
+  selectedLoanAmount?: number;
 }
 export interface AffordabilityResult extends AffordabilityInput {
   totalMonthlyIncome: number;
@@ -111,6 +112,7 @@ export interface LoanProfile {
   safetyMax: number;
   estimatedLoanAmount: number;
   estimatedPropertyBudget: number;
+  selectedLoanAmount: number | null;
 }
 export interface Appointment {
   id: string;

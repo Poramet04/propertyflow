@@ -121,7 +121,7 @@ export const createLead: RequestHandler = async (req, res) => {
   const [customer, agent] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: req.user!.id },
-      include: { loanProfile: true, propertyPreference: true },
+      include: { loanProfile: true },
     }),
     assignAgent(),
   ]);
@@ -131,10 +131,7 @@ export const createLead: RequestHandler = async (req, res) => {
         customerId: customer.id,
         propertyId: property.id,
         assignedAgentId: agent.id,
-        budget:
-          body.budget ??
-          customer.propertyPreference?.maxPropertyPrice ??
-          customer.loanProfile?.estimatedPropertyBudget,
+        budget: customer.loanProfile?.selectedLoanAmount ?? undefined,
         phone: body.phone ?? customer.phone,
         email: customer.email,
       },

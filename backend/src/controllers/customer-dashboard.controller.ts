@@ -65,6 +65,10 @@ export const customerDashboard: RequestHandler = async (req, res) => {
           downPayment: Number(profile.downPayment),
           estimatedLoanAmount: Number(profile.estimatedLoanAmount),
           estimatedPropertyBudget: Number(profile.estimatedPropertyBudget),
+          selectedLoanAmount:
+            profile.selectedLoanAmount == null
+              ? null
+              : Number(profile.selectedLoanAmount),
         }
       : null,
     preference: pref

@@ -55,6 +55,10 @@ async function forCustomer(userId: string, override: MatchPreferences = {}) {
           downPayment: Number(profile.downPayment),
           estimatedLoanAmount: Number(profile.estimatedLoanAmount),
           estimatedPropertyBudget: Number(profile.estimatedPropertyBudget),
+          selectedLoanAmount:
+            profile.selectedLoanAmount == null
+              ? null
+              : Number(profile.selectedLoanAmount),
         }
       : null,
     preference: numberPreference(user.propertyPreference),

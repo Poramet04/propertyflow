@@ -1,4 +1,5 @@
 import type { RequestHandler } from "express";
+import { LeadStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "../config/prisma.js";
 import { affordability, compareMortgage, mortgage } from "../utils/finance.js";
@@ -29,6 +30,10 @@ export const affordabilitySchema = z
     message: "Safety maximum must be greater than or equal to safety minimum",
     path: ["safetyMax"],
   });
+const savedAffordabilitySchema = z.intersection(
+  affordabilitySchema,
+  z.object({ selectedLoanAmount: nonnegative.positive() }),
+);
 export const calculateMortgage: RequestHandler = (req, res) =>
   res.json(mortgage(mortgageSchema.parse(req.body)));
 export const calculateAffordability: RequestHandler = (req, res) => {
@@ -47,15 +52,24 @@ export const calculateAffordability: RequestHandler = (req, res) => {
   });
 };
 export const saveAffordability: RequestHandler = async (req, res) => {
-  const input = affordabilitySchema.parse(req.body),
+  const input = savedAffordabilitySchema.parse(req.body),
     totalDebt =
       input.existingDebt +
       input.creditCardMonthlyPayment +
       input.carLoanMonthlyPayment +
       input.personalLoanMonthlyPayment +
       input.otherMonthlyDebt,
-    result = affordability({ ...input, existingDebt: totalDebt }),
-    data = {
+    result = affordability({ ...input, existingDebt: totalDebt });
+  if (input.selectedLoanAmount > result.maxLoanAmount) {
+    throw new z.ZodError([
+      {
+        code: "custom",
+        path: ["selectedLoanAmount"],
+        message: "Selected loan amount exceeds the estimated maximum",
+      },
+    ]);
+  }
+  const data = {
       monthlyIncome: input.monthlyIncome,
       additionalMonthlyIncome: input.additionalMonthlyIncome,
       existingDebt: input.existingDebt,
@@ -71,13 +85,36 @@ export const saveAffordability: RequestHandler = async (req, res) => {
       safetyMax: input.safetyMax,
       estimatedLoanAmount: result.maxLoanAmount,
       estimatedPropertyBudget: result.maxPropertyPrice,
+      selectedLoanAmount: input.selectedLoanAmount,
     };
-  await prisma.loanProfile.upsert({
-    where: { userId: req.user!.id },
-    update: data,
-    create: { ...data, userId: req.user!.id },
+  await prisma.$transaction(async (tx) => {
+    await tx.loanProfile.upsert({
+      where: { userId: req.user!.id },
+      update: data,
+      create: { ...data, userId: req.user!.id },
+    });
+    await tx.lead.updateMany({
+      where: {
+        customerId: req.user!.id,
+        status: {
+          in: [
+            LeadStatus.NEW,
+            LeadStatus.CONTACTED,
+            LeadStatus.VIEWING,
+            LeadStatus.NEGOTIATION,
+            LeadStatus.BOOKING,
+          ],
+        },
+      },
+      data: { budget: input.selectedLoanAmount },
+    });
   });
-  res.json({ ...result, totalExistingMonthlyDebt: totalDebt, saved: true });
+  res.json({
+    ...result,
+    totalExistingMonthlyDebt: totalDebt,
+    selectedLoanAmount: input.selectedLoanAmount,
+    saved: true,
+  });
 };
 export const compareMortgages: RequestHandler = (req, res) => {
   const body = z

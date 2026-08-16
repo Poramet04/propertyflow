@@ -117,7 +117,10 @@ export default function AffordabilityPage() {
     setBusy(true);
     try {
       const [savedProfile, savedPreference] = await Promise.all([
-        calculatorApi.saveAffordability(token, form),
+        calculatorApi.saveAffordability(token, {
+          ...form,
+          selectedLoanAmount: requestedLoan,
+        }),
         preferenceApi.put(token, {
           ...preference,
           maxPropertyPrice: selectedPropertyBudget,
@@ -127,8 +130,8 @@ export default function AffordabilityPage() {
       setPreference(savedPreference);
       setSaveMessage(
         pick(
-          `Saved. Your selected loan is ${money(requestedLoan)} and your property budget is ${money(selectedPropertyBudget)} including the down payment. Active enquiries have been updated.`,
-          `บันทึกแล้ว วงเงินกู้ที่เลือกคือ ${money(requestedLoan)} และงบซื้ออสังหาริมทรัพย์รวมเงินดาวน์คือ ${money(selectedPropertyBudget)} ลีดที่กำลังดำเนินการได้รับการอัปเดตแล้ว`,
+          `Saved. Your leads now show the selected loan amount of ${money(requestedLoan)}. The ${money(selectedPropertyBudget)} total funding budget, including your down payment, is used only for property recommendations.`,
+          `บันทึกแล้ว ลีดจะแสดงเฉพาะวงเงินกู้ที่เลือก ${money(requestedLoan)} ส่วนงบรวมเงินดาวน์ ${money(selectedPropertyBudget)} ใช้สำหรับจัดรายการอสังหาริมทรัพย์แนะนำเท่านั้น`,
         ),
       );
     } catch (caught) {
@@ -260,21 +263,8 @@ export default function AffordabilityPage() {
             <button disabled={busy} className="btn-primary" onClick={calculate}>
               {pick("Calculate budget", "คำนวณงบประมาณ")}
             </button>
-            {user?.role === "CUSTOMER" && (
-              <button disabled={busy} className="btn-light" onClick={saveSelectedPlan}>
-                {pick(
-                  "Save profile and selected loan plan",
-                  "บันทึกโปรไฟล์และแผนกู้ที่เลือก",
-                )}
-              </button>
-            )}
           </div>
           {error && <p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}
-          {saveMessage && (
-            <p role="status" className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm leading-6 text-emerald-800">
-              {saveMessage}
-            </p>
-          )}
         </div>
         <div className="rounded-3xl bg-forest p-7 text-white shadow-soft">
           <Wallet size={30} />
@@ -348,8 +338,8 @@ export default function AffordabilityPage() {
                 </p>
                 <p className="mt-2 text-xs leading-5 text-white/60">
                   {pick(
-                    `When saved, your lead budget will be this loan plus your ${money(form.downPayment)} down payment.`,
-                    `เมื่อบันทึก งบที่แสดงในลีดจะเท่ากับวงเงินกู้นี้รวมกับเงินดาวน์ ${money(form.downPayment)}`,
+                    `When saved, your lead will show this selected loan amount only. The loan plus your ${money(form.downPayment)} down payment is used for property recommendations.`,
+                    `เมื่อบันทึก ลีดจะแสดงเฉพาะวงเงินกู้ที่เลือกนี้ ส่วนวงเงินกู้รวมเงินดาวน์ ${money(form.downPayment)} ใช้สำหรับรายการอสังหาริมทรัพย์แนะนำ`,
                   )}
                 </p>
                 <button
@@ -402,6 +392,23 @@ export default function AffordabilityPage() {
                   </div>
                 )}
               </div>
+              {user?.role === "CUSTOMER" && (
+                <button
+                  disabled={busy}
+                  className="mt-5 w-full rounded-xl bg-mint px-4 py-3 font-bold text-forest transition hover:bg-white disabled:opacity-60"
+                  onClick={saveSelectedPlan}
+                >
+                  {pick(
+                    "Save profile and selected loan plan",
+                    "บันทึกโปรไฟล์และแผนกู้ที่เลือก",
+                  )}
+                </button>
+              )}
+              {saveMessage && (
+                <p role="status" className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm leading-6 text-emerald-900">
+                  {saveMessage}
+                </p>
+              )}
               <Link className="mt-5 inline-block font-bold underline" to="/recommendations">
                 {pick("View smart recommendations →", "ดูรายการแนะนำ →")}
               </Link>

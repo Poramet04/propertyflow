@@ -213,6 +213,7 @@ model LoanProfile {
   safetyMax                  Float    @default(92)
   estimatedLoanAmount        Decimal  @db.Decimal(14, 2)
   estimatedPropertyBudget    Decimal  @db.Decimal(14, 2)
+  selectedLoanAmount         Decimal? @db.Decimal(14, 2)
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 }
