@@ -15,21 +15,29 @@ import { money } from "../utils/finance";
 
 export default function AffordabilityPage() {
   const [query] = useSearchParams();
+  const queryNumber = (key: string, fallback: number) => {
+    const raw = query.get(key);
+    if (raw === null || raw.trim() === "") return fallback;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : fallback;
+  };
   const { user, token } = useAuth();
   const { pick } = useLanguage();
   const [form, setForm] = useState<AffordabilityInput>({
-    monthlyIncome: Number(query.get("income")) || 45000,
-    additionalMonthlyIncome: 0,
-    existingDebt: Number(query.get("debt")) || 5000,
-    downPayment: Number(query.get("down")) || 350000,
-    loanYears: Number(query.get("years")) || 30,
-    interestRate: 5.5,
-    maxDti: 40,
-    safetyMin: 85,
-    safetyMax: 92,
+    monthlyIncome: queryNumber("income", 45000),
+    additionalMonthlyIncome: queryNumber("additionalIncome", 0),
+    existingDebt: queryNumber("debt", 5000),
+    downPayment: queryNumber("down", 350000),
+    loanYears: queryNumber("years", 30),
+    interestRate: queryNumber("interest", 5.5),
+    maxDti: queryNumber("dti", 40),
+    safetyMin: queryNumber("safetyMin", 85),
+    safetyMax: queryNumber("safetyMax", 92),
   });
   const [result, setResult] = useState<AffordabilityResult | null>(null);
-  const [requestedLoan, setRequestedLoan] = useState(0);
+  const [requestedLoan, setRequestedLoan] = useState(() =>
+    queryNumber("loan", 0),
+  );
   const [loanResult, setLoanResult] = useState<MortgageResult | null>(null);
   const [loanError, setLoanError] = useState("");
   const [loanBusy, setLoanBusy] = useState(false);
@@ -60,6 +68,18 @@ export default function AffordabilityPage() {
   const noMortgageCapacity =
     result !== null &&
     (result.maxMortgagePayment <= 0 || result.maxLoanAmount <= 0);
+  const loginReturnUrl = `/affordability?${new URLSearchParams({
+    income: String(form.monthlyIncome),
+    additionalIncome: String(form.additionalMonthlyIncome),
+    debt: String(form.existingDebt),
+    down: String(form.downPayment),
+    years: String(form.loanYears),
+    interest: String(form.interestRate),
+    dti: String(form.maxDti),
+    safetyMin: String(form.safetyMin),
+    safetyMax: String(form.safetyMax),
+    loan: String(requestedLoan),
+  }).toString()}`;
   const set = (key: keyof AffordabilityInput, value: number) =>
     setForm((current) => ({ ...current, [key]: value }));
   const calculate = async () => {
@@ -404,6 +424,32 @@ export default function AffordabilityPage() {
                   )}
                 </button>
               )}
+              {!user && (
+                <Link
+                  className="mt-5 block w-full rounded-xl bg-mint px-4 py-3 text-center font-bold text-forest transition hover:bg-white"
+                  to="/login"
+                  state={{ from: loginReturnUrl }}
+                >
+                  {pick(
+                    "Log in to save this loan amount",
+                    "เข้าสู่ระบบเพื่อบันทึกวงเงินนี้",
+                  )}
+                </Link>
+              )}
+              {user && user.role !== "CUSTOMER" && (
+                <p className="mt-5 rounded-xl bg-white/10 p-3 text-sm leading-6 text-white/75">
+                  {pick(
+                    "Loan plans can only be saved from a customer account.",
+                    "การบันทึกแผนกู้ใช้ได้เฉพาะบัญชีลูกค้าเท่านั้น",
+                  )}
+                </p>
+              )}
+              <p className="mt-3 text-xs leading-5 text-white/60">
+                {pick(
+                  "Saving does not create a lead by itself. This amount is used when you click “I'm Interested” on a property, and it also updates your active leads.",
+                  "การบันทึกวงเงินเพียงอย่างเดียวยังไม่สร้างลีด ระบบจะใช้วงเงินนี้เมื่อคุณกด “ฉันสนใจ” ในหน้าอสังหาริมทรัพย์ และจะอัปเดตลีดที่กำลังดำเนินการอยู่ด้วย",
+                )}
+              </p>
               {saveMessage && (
                 <p role="status" className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm leading-6 text-emerald-900">
                   {saveMessage}
